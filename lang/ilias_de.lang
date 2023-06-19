@@ -1,0 +1,40 @@
+obj_xevm#:#Eva Man 2 Object
+objs_xevm#:#Eva Man 2 Objects
+obj_xevm_duplicate#:#Copy
+objs_xevm_duplicate#:#Copy Eva Man 2 Object
+obj_xevm_select#:#Select Eva Man 2 Object
+xevm_add#:#Add Eva Man 2 Object
+xevm_new#:#Add Eva Man 2 Object
+xevm_read#:#Read access to Eva Man 2 Object
+xevm_write#:#Edit Eva Man 2 Object
+xevm_delete#:#Delete Eva Man 2 Object
+xevm_visible#:#Eva Man 2 Object is visible
+xevm_edit_permission#:#Change permission settings
+crs_create_xevm#:#Create Eva Man 2 Object
+grp_create_xevm#:#Create Eva Man 2 Object
+fold_create_xevm#:#Create Eva Man 2 Object
+root_create_xevm#:#Create Eva Man 2 Object
+cat_create_xevm#:#Create Eva Man 2 Object
+xevm_update_successful#:#Speichern erfolgreich
+title#:#Title
+description#:#Description
+online#:#Online
+save#:#Save
+update#:#Update
+properties#:#Properties
+content#:#Content
+copy#:#Copy
+edit#:#Edit
+export#:#Export
+set_not_attempted#:#Set LP Status to not attempted
+set_in_progress#:#Set LP Status to in progress
+set_passed#:#Set LP Status to not completed
+set_failed#:#Set LP Status to not failed
+set_completed#:#Set LP Status to completed
+lp_status_0#:#Not Attempted
+lp_status_1#:#In Progress
+lp_status_2#:#Completed
+lp_status_3#:#Failed
+lp_status_#:#No state yet.
+lp_status_info#:#Attention: Setting the LP Status will set the LP status of the currently logged in user to the chosen Stauts. THE STATUS OF EVERY OTHER USER WILL BE SET TO NOT ATTEMPTED!
+offline:#:Offline
