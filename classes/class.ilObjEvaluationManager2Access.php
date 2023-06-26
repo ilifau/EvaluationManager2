@@ -10,6 +10,7 @@ include_once("./Services/Repository/classes/class.ilObjectPluginAccess.php");
 * @author 		Alex Killing <alex.killing@gmx.de>
 * @version $Id$
 */
+
 class ilObjEvaluationManager2Access extends ilObjectPluginAccess
 {
  
@@ -40,8 +41,7 @@ class ilObjEvaluationManager2Access extends ilObjectPluginAccess
 		switch ($a_permission)
 		{
 			case "read":
-				if (!ilObjEvaluationManager2Access::checkOnline($a_obj_id) &&
-					!$ilAccess->checkAccessOfUser($a_user_id, "write", "", $a_ref_id))
+				if (!$ilAccess->checkAccessOfUser($a_user_id, "write", "", $a_ref_id))
 				{
 					return false;
 				}
@@ -50,21 +50,6 @@ class ilObjEvaluationManager2Access extends ilObjectPluginAccess
  
 		return true;
 	}
- 
-	/**
-	* Check online status of example object
-	*/
-	static function checkOnline($a_id)
-	{
-		global $ilDB;
- 
-		$set = $ilDB->query("SELECT is_online FROM rep_robj_xevm_data ".
-			" WHERE id = ".$ilDB->quote($a_id, "integer")
-			);
-		$rec  = $ilDB->fetchAssoc($set);
-		return (boolean) $rec["is_online"];
-	}
- 
 }
  
 ?>

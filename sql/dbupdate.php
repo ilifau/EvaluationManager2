@@ -1,30 +1,32 @@
 <#1>
 <?php
-$fields = array(
-	'id' => array(
-		'type' => 'integer',
-		'length' => 4,
-		'notnull' => true
-	),
-	'is_online' => array(
-		'type' => 'integer',
-		'length' => 1,
-		'notnull' => false
-	),
-	'option_one' => array(
-		'type' => 'text',
-		'length' => 10,
-		'fixed' => false,
-		'notnull' => false
-	),
-	'option_two' => array(
-		'type' => 'text',
-		'length' => 10,
-		'fixed' => false,
-		'notnull' => false
-	)
+$fields_courses = array(
+    'course_id' => array(
+        'type' => 'integer',
+        'length' => 4,
+        'notnull' => true
+    ),
+    'obj_id' => array(
+    'type' => 'integer',
+    'length' => 4,
+    'notnull' => true
+    )
 );
- 
-$ilDB->createTable("rep_robj_xema_data", $fields);
-$ilDB->addPrimaryKey("rep_robj_xema_data", array("id"));
+
+$fields_orgs = array(
+    'obj_id' => array(
+        'type' => 'integer',
+        'length' => 4,
+        'notnull' => true
+    ),
+    'fau_org_number' => array(
+        'type' => 'integer',
+        'length' => 4,
+        'notnull' => true
+    )
+);
+$ilDB->createTable("rep_robj_xevm_courses", $fields_courses);
+$ilDB->createTable("rep_robj_xevm_orgs", $fields_orgs);
+$ilDB->addPrimaryKey("rep_robj_xevm_orgs", array("obj_id"));
+$ilDB->addPrimaryKey("rep_robj_xevm_courses", array("course_id"));
 ?>

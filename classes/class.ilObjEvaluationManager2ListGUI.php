@@ -9,6 +9,7 @@ include_once "./Services/Repository/classes/class.ilObjectPluginListGUI.php";
  * PLEASE do not create instances of larger classes here. Use the
  * ...Access class to get DB data and keep it small.
  */
+
 class ilObjEvaluationManager2ListGUI extends ilObjectPluginListGUI
 {
  
@@ -61,11 +62,6 @@ class ilObjEvaluationManager2ListGUI extends ilObjectPluginListGUI
 		$props = array();
  
 		$this->plugin->includeClass("class.ilObjEvaluationManager2Access.php");
-		if (!ilObjEvaluationManager2Access::checkOnline($this->obj_id))
-		{
-			$props[] = array("alert" => true, "property" => $this->txt("status"),
-				"value" => $this->txt("offline"));
-		}
  
 		return $props;
 	}

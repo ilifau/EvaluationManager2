@@ -1,5 +1,7 @@
 obj_xevm#:#Eva Man 2 Object
 objs_xevm#:#Eva Man 2 Objects
+xevm_events#:#Events
+xevm_exports#:#Exports
 obj_xevm_duplicate#:#Copy
 objs_xevm_duplicate#:#Copy Eva Man 2 Object
 obj_xevm_select#:#Select Eva Man 2 Object
@@ -15,7 +17,7 @@ grp_create_xevm#:#Create Eva Man 2 Object
 fold_create_xevm#:#Create Eva Man 2 Object
 root_create_xevm#:#Create Eva Man 2 Object
 cat_create_xevm#:#Create Eva Man 2 Object
-xevm_update_successful#:#Speichern erfolgreich
+xevm_update_successful#:#Update successful
 title#:#Title
 description#:#Description
 online#:#Online

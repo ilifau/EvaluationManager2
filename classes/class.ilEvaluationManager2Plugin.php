@@ -13,12 +13,21 @@ class ilEvaluationManager2Plugin extends ilRepositoryObjectPlugin
 	{
 		return "EvaluationManager2";
 	}
- 
+
+
 	protected function uninstallCustom() {
-		
 		global $ilDB;
-		//when uninstalling, remove content in table rep_obj_xevm_data
-		
-	}
+        try {
+            if($ilDB->checkTableName("rep_robj_xevm_courses")) {
+                $ilDB->dropTable('rep_robj_xevm_courses');
+            }
+            if($ilDB->checkTableName("rep_robj_xevm_orgs")) {
+                $ilDB->dropTable('rep_robj_xevm_orgs');
+            }
+        }
+        catch(Exception $e) {
+            //catch missing stuff, TODO: better handling needed
+        }
+    }
 }
 ?>

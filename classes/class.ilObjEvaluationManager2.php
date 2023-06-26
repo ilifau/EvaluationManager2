@@ -6,8 +6,10 @@ require_once("./Customizing/global/plugins/Services/Repository/RepositoryObject/
  
 /**
  */
-class ilObjEvaluationManager2 extends ilObjectPlugin implements ilLPStatusPluginInterface
+class ilObjEvaluationManager2 extends ilObjectPlugin
 {
+    protected int $fauOrgNumber = 0;
+
 	/**
 	 * Constructor
 	 *
@@ -25,6 +27,7 @@ class ilObjEvaluationManager2 extends ilObjectPlugin implements ilLPStatusPlugin
 	final function initType()
 	{
 		$this->setType(ilEvaluationManager2Plugin::ID);
+        $this->doRead();
 	}
  
 	/**
@@ -33,14 +36,13 @@ class ilObjEvaluationManager2 extends ilObjectPlugin implements ilLPStatusPlugin
 	function doCreate()
 	{
 		global $ilDB;
- 
-		$ilDB->manipulate("INSERT INTO rep_robj_xevm_data ".
-			"(id, is_online, option_one, option_two) VALUES (".
-			$ilDB->quote($this->getId(), "integer").",".
-			$ilDB->quote(0, "integer").",".
-			$ilDB->quote("default 1", "text").",".
-			$ilDB->quote("default 2", "text").
-			")");
+
+        $ilDB->manipulate("INSERT INTO rep_robj_xevm_orgs ".
+            "(obj_id, fau_org_number) VALUES (".
+            $ilDB->quote($this->getId(), "integer").",".
+            $ilDB->quote(0, "integer").
+            ")"
+        );
 	}
  
 	/**
@@ -49,13 +51,12 @@ class ilObjEvaluationManager2 extends ilObjectPlugin implements ilLPStatusPlugin
 	function doRead()
 	{
 		global $ilDB;
- 
-		$set = $ilDB->query("SELECT * FROM rep_robj_xevm_data ".
-			" WHERE id = ".$ilDB->quote($this->getId(), "integer")
+		$set = $ilDB->query("SELECT * FROM rep_robj_xevm_orgs ".
+			" WHERE obj_id = ".$ilDB->quote($this->getId(), "integer")
 		);
-		while ($rec = $ilDB->fetchAssoc($set))
-		{
-			$this->setOnline($rec["is_online"]);
+
+		while ($rec = $ilDB->fetchAssoc($set)) {
+			$this->setFauOrgNumber($rec["fau_org_number"]);
 		}
 	}
  
@@ -65,10 +66,10 @@ class ilObjEvaluationManager2 extends ilObjectPlugin implements ilLPStatusPlugin
 	function doUpdate()
 	{
 		global $ilDB;
- 
-		$ilDB->manipulate($up = "UPDATE rep_robj_xevm_data SET ".
-			" is_online = ".$ilDB->quote($this->isOnline(), "integer")."".
-			" WHERE id = ".$ilDB->quote($this->getId(), "integer")
+
+		$ilDB->manipulate($up = "UPDATE rep_robj_xevm_orgs SET ".
+            " fau_org_number = ".$ilDB->quote($this->getFAUOrgNumber(), "integer").
+			" WHERE obj_id = ".$ilDB->quote($this->getId(), "integer")
 		);
 	}
  
@@ -79,8 +80,8 @@ class ilObjEvaluationManager2 extends ilObjectPlugin implements ilLPStatusPlugin
 	{
 		global $ilDB;
  
-		$ilDB->manipulate("DELETE FROM rep_robj_xevm_data WHERE ".
-			" id = ".$ilDB->quote($this->getId(), "integer")
+		$ilDB->manipulate("DELETE FROM rep_robj_xevm_orgs WHERE ".
+			" obj_id = ".$ilDB->quote($this->getId(), "integer")
 		);
 	}
  
@@ -91,80 +92,85 @@ class ilObjEvaluationManager2 extends ilObjectPlugin implements ilLPStatusPlugin
 	{
 		global $ilDB;
  
-		$new_obj->setOnline($this->isOnline());
-		$new_obj->setOptionOne($this->getOptionOne());
-		$new_obj->setOptionTwo($this->getOptionTwo());
+		$new_obj->setFAUOrgNumber($this->getFAUOrgNumber());
 		$new_obj->update();
 	}
  
 	/**
-	 * Set online
+	 * Set fauOrgNumber
 	 *
-	 * @param        boolean                online
+	 * @param        integer                 fauOrgNumber
 	 */
-	function setOnline($a_val)
+	public function setFAUOrgNumber($a_val)
 	{
-		$this->online = $a_val;
+		$this->fauOrgNumber = $a_val;
 	}
  
 	/**
-	 * Get online
+	 * get FAUOrgNumber
 	 *
-	 * @return        boolean                online
+	 * @return        integer                fauOrgNumber
 	 */
-	function isOnline()
+	public function getFAUOrgNumber()
 	{
-		return $this->online;
+		return $this->fauOrgNumber;
 	}
- 
-	/**
-	 * Get all user ids with LP status completed
-	 *
-	 * @return array
-	 */
-	public function getLPCompleted() {
-		return array();
-	}
- 
-	/**
-	 * Get all user ids with LP status not attempted
-	 *
-	 * @return array
-	 */
-	public function getLPNotAttempted() {
-		return array();
-	}
- 
-	/**
-	 * Get all user ids with LP status failed
-	 *
-	 * @return array
-	 */
-	public function getLPFailed() {
-		return array(6);
-	}
- 
-	/**
-	 * Get all user ids with LP status in progress
-	 *
-	 * @return array
-	 */
-	public function getLPInProgress() {
-		return array();
-	}
- 
-	/**
-	 * Get current status for given user
-	 *
-	 * @param int $a_user_id
-	 * @return int
-	 */
-	public function getLPStatusForUser($a_user_id) {
-		global $ilUser;
-		if($ilUser->getId() == $a_user_id)
-			return $_SESSION[ilObjEvaluationManager2GUI::LP_SESSION_ID];
-		else
-			return ilLPStatus::LP_STATUS_NOT_ATTEMPTED_NUM;
-	}
+
+    public function addCourseToObject($courseNumber) : bool {
+        global $ilDB;
+
+        $isCourseAlreadyUsed = $this->checkIfCourseIsAlreadyUsed($courseNumber);
+        $isCourseInOrg = $this->checkIfCourseIsInOrgUnit($courseNumber);
+        if($isCourseAlreadyUsed || !$isCourseInOrg) {
+            return false;
+        }
+
+        $ilDB->manipulate("INSERT INTO rep_robj_xevm_courses ".
+            "(course_id, obj_id) VALUES (".
+            $ilDB->quote($courseNumber, "integer")."," .
+            $ilDB->quote($this->getId(), "integer").
+            ")"
+        );
+
+        return true;
+    }
+
+    protected function checkIfCourseIsAlreadyUsed(int $courseNumber) : bool {
+        global $ilDB;
+        $set = $ilDB->query("SELECT * FROM rep_robj_xevm_courses WHERE obj_id = ".
+            $ilDB->quote($this->getId(), "integer") .
+            " AND course_id = " . $courseNumber
+        );
+        $result = $ilDB->fetchAll($set);
+        if(empty($result)) { //eintrag noch nicht vorhanden
+            return false;
+        } else {
+            return true;
+        }
+    }
+
+    protected function checkIfCourseIsInOrgUnit(int $courseNumber) : bool {
+        global $ilDB;
+        $set = $ilDB->query("SELECT * FROM fau_study_event_orgs eo 
+                                   JOIN fau_study_courses sc ON eo.event_id = sc.event_id 
+                                   WHERE sc.course_id = ". $courseNumber .
+                                   " AND eo.fauorg_nr = " . $this->getFAUOrgNumber());
+        $result = $ilDB->fetchAll($set);
+        var_dump($result);
+        if(empty($result)) { //Kurs ist nicht in Org-Einheit zu finden
+            return false;
+        } else {
+            return true;
+        }
+    }
+
+    public function getChosenCourseList() : array {
+        global $ilDB;
+        $set = $ilDB->query(
+            "SELECT eo.fauorg_nr, eo.event_id, sc.course_id, sc.title, xc.obj_id FROM fau_study_event_orgs eo JOIN fau_study_courses sc JOIN rep_robj_xevm_courses xc
+                  ON eo.event_id = sc.event_id AND xc.course_id = sc.course_id
+                  where xc.obj_id = " . $this->getId() . " AND eo.fauorg_nr = " . $this->getFAUOrgNumber());
+        return $ilDB->fetchAll($set);
+    }
 }
 ?>

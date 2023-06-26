@@ -1,31 +1,56 @@
 <?php
- 
+
+use FAU\BaseGUI;
+use FAU\Study\Data\SearchCondition;
+use FAU\Study\Search;
+use ILIAS\UI\Component\Item\Group;
+use ILIAS\UI\Component\ViewControl\Pagination;
+use FAU\Study\Data\ImportId;
+
 include_once("./Services/Repository/classes/class.ilObjectPluginGUI.php");
 require_once("./Services/Form/classes/class.ilPropertyFormGUI.php");
 require_once("./Services/Form/classes/class.ilTextInputGUI.php");
 require_once("./Services/Form/classes/class.ilCheckboxInputGUI.php");
-require_once("./Services/Tracking/classes/class.ilLearningProgress.php");
-require_once("./Services/Tracking/classes/class.ilLPStatusWrapper.php");
-require_once("./Services/Tracking/classes/status/class.ilLPStatusPlugin.php");
 require_once("./Customizing/global/plugins/Services/Repository/RepositoryObject/EvaluationManager2/classes/class.ilEvaluationManager2Plugin.php");
  
 /**
  * @ilCtrl_isCalledBy ilObjEvaluationManager2GUI: ilRepositoryGUI, ilAdministrationGUI, ilObjPluginDispatchGUI, ilCommonActionDispatcherGUI
  * @ilCtrl_Calls ilObjEvaluationManager2GUI: ilPermissionGUI, ilInfoScreenGUI, ilObjectCopyGUI, ilCommonActionDispatcherGUI, ilExportGUI
  */
+class ListGUI extends BaseGUI {
+    public function __construct(){
+        parent::__construct();
+        $this->lng->loadLanguageModule('xemv');
+    }
+
+    public function addTermSelectionToForm(ilPropertyFormGUI $form) {
+        $term = new ilSelectInputGUI('Semester', 'term_id');
+        $options = $this->dic->fau()->study()->getTermSearchOptions(null, false);
+        $current = $this->dic->fau()->study()->getCurrentTerm()->toString();
+        $term->setOptions($options);
+        $term->setValue($current);
+        $form->addItem($term);
+    }
+
+    public function addRepositorySelector(ilPropertyFormGUI $form) {
+        $ref = new fauRepositorySelectorInputGUI($this->lng->txt('search_area'), 'search_ref_id');
+        $ref->setTypeWhitelist(['root', 'cat']);
+        $ref->setSelectableTypes(['cat']);
+        $form->addItem($ref);
+    }
+}
+
 class ilObjEvaluationManager2GUI extends ilObjectPluginGUI
 {
-	const LP_SESSION_ID = 'xevm_lp_session_state';
- 
 	/** @var  ilCtrl */
 	protected $ctrl;
- 
+
 	/** @var  ilTabsGUI */
 	protected $tabs;
- 
+
 	/** @var  ilTemplate */
 	public $tpl;
- 
+
 	/**
 	 * Initialisation
 	 */
@@ -39,30 +64,7 @@ class ilObjEvaluationManager2GUI extends ilObjectPluginGUI
  
 	public function executeCommand() {
 		global $tpl;
- 
- 
-		$next_class = $this->ctrl->getNextClass($this);
-		switch ($next_class) {
-			case 'ilexportgui':
-				// only if plugin supports it?
-				$tpl->setTitle($this->object->getTitle());
-				$tpl->setTitleIcon(ilObject::_getIcon($this->object->getId()));
-				$this->setLocator();
-				$tpl->getStandardTemplate();
-				$this->setTabs();
-				include_once './Services/Export/classes/class.ilExportGUI.php';
-				$this->tabs->activateTab("export");
-				$exp = new ilExportGUI($this);
-				$exp->addFormat('xml');
-				$this->ctrl->forwardCommand($exp);
-				$tpl->show();
-				return;
-				break;
-		}
- 
-		$return_value = parent::executeCommand();
- 
-		return $return_value;
+		return parent::executeCommand();;
 	}
  
 	/**
@@ -84,20 +86,20 @@ class ilObjEvaluationManager2GUI extends ilObjectPluginGUI
 			case "updateProperties":
 			case "saveProperties":
 			case "showExport":
+            case "addCourse":
+            case "export_to_chosen":
 				$this->checkPermission("write");
 				$this->$cmd();
 				break;
- 
-			case "showContent":   // list all commands that need read permission here
-			case "setStatusToCompleted":
-			case "setStatusToFailed":
-			case "setStatusToInProgress":
-			case "setStatusToNotAttempted":
+
+            case "showContent":
+            case "showExports":
 				$this->checkPermission("read");
 				$this->$cmd();
 				break;
 		}
 	}
+
  
 	/**
 	 * After object has been created -> jump to this command
@@ -123,26 +125,26 @@ class ilObjEvaluationManager2GUI extends ilObjectPluginGUI
 	 * Set tabs
 	 */
 	function setTabs()
-	{
-		global $ilCtrl, $ilAccess;
- 
-		// tab for the "show content" command
-		if ($ilAccess->checkAccess("read", "", $this->object->getRefId()))
-		{
-			$this->tabs->addTab("content", $this->txt("content"), $ilCtrl->getLinkTarget($this, "showContent"));
-		}
- 
+    {
+        global $ilCtrl, $ilAccess;
+
+        // tab for the "show content" command
+        if ($ilAccess->checkAccess("read", "", $this->object->getRefId())) {
+            //none cause users with only read rights should now open this
+        }
+
 		// standard info screen tab
-		$this->addInfoTab();
- 
+
 		// a "properties" tab
+        //TODO: only allow Administrator Roles to access Properties
 		if ($ilAccess->checkAccess("write", "", $this->object->getRefId()))
 		{
+            $this->tabs->addTab("content", $this->txt("content"), $ilCtrl->getLinkTarget($this, "showContent"));
+            $this->tabs->addTab("exports", $this->txt("exports"), $ilCtrl->getLinkTarget($this, "showExports"));
 			$this->tabs->addTab("properties", $this->txt("properties"), $ilCtrl->getLinkTarget($this, "editProperties"));
-			$this->tabs->addTab("export", $this->txt("export"), $ilCtrl->getLinkTargetByClass("ilexportgui", ""));
 		}
- 
-		// standard permission tab
+
+        $this->addInfoTab();
 		$this->addPermissionTab();
 		$this->activateTab();
 	}
@@ -163,18 +165,22 @@ class ilObjEvaluationManager2GUI extends ilObjectPluginGUI
 	 */
 	protected function initPropertiesForm() {
 		$form = new ilPropertyFormGUI();
-		$form->setTitle($this->plugin->txt("obj_xtst"));
- 
+		$form->setTitle($this->plugin->txt("obj_xevm"));
+
+        $object = $this->object;
+
 		$title = new ilTextInputGUI($this->plugin->txt("title"), "title");
 		$title->setRequired(true);
 		$form->addItem($title);
  
 		$description = new ilTextInputGUI($this->plugin->txt("description"), "description");
 		$form->addItem($description);
- 
-		$online = new ilCheckboxInputGUI($this->plugin->txt("online"), "online");
-		$form->addItem($online);
- 
+
+        $fau_org = new ilTextInputGUI("choose fau org number", "fau_org_number");
+        $fau_org->setRequired(true);
+        $value = strval($object->getFAUOrgNumber());
+        $form->addItem($fau_org);
+
 		$form->setFormAction($this->ctrl->getFormAction($this, "saveProperties"));
 		$form->addCommandButton("saveProperties", $this->plugin->txt("update"));
  
@@ -188,12 +194,12 @@ class ilObjEvaluationManager2GUI extends ilObjectPluginGUI
 		$form->setValuesByArray(array(
 			"title" => $this->object->getTitle(),
 			"description" => $this->object->getDescription(),
-			"online" => $this->object->isOnline(),
+            "fau_org_number" => $this->object->getFAUOrgNumber()
 		));
 	}
  
 	/**
-	 *
+	 * saveProperties
 	 */
 	protected function saveProperties() {
 		$form = $this->initPropertiesForm();
@@ -206,93 +212,125 @@ class ilObjEvaluationManager2GUI extends ilObjectPluginGUI
 		}
 		$this->tpl->setContent($form->getHTML());
 	}
+
+    protected function saveNewCourseEntry() {
+
+    }
  
-	protected function showContent() {
-		$this->tabs->activateTab("content");
-		/** @var ilTemplate $template */
-		$template = $this->plugin->getTemplate("tpl.content.html");
-		/** @var ilObjEvaluationManager2 $object */
-		$object = $this->object;
-		$template->setVariable("TITLE", $object->getTitle());
-		$template->setVariable("DESCRIPTION", $object->getDescription());
-		$template->setVariable("ONLINE_STATUS", $object->isOnline()?"Online":"Offline");
-		$template->setVariable("ONLINE_COLOR", $object->isOnline()?"green":"red");
- 
-		$template->setVariable("SET_COMPLETED", $this->ctrl->getLinkTarget($this, "setStatusToCompleted"));
-		$template->setVariable("SET_COMPLETED_TXT", $this->plugin->txt("set_completed"));
- 
-		$template->setVariable("SET_NOT_ATTEMPTED", $this->ctrl->getLinkTarget($this, "setStatusToNotAttempted"));
-		$template->setVariable("SET_NOT_ATTEMPTED_TXT", $this->plugin->txt("set_not_attempted"));
- 
-		$template->setVariable("SET_FAILED", $this->ctrl->getLinkTarget($this, "setStatusToFailed"));
-		$template->setVariable("SET_FAILED_TXT", $this->plugin->txt("set_failed"));
- 
-		$template->setVariable("SET_IN_PROGRESS", $this->ctrl->getLinkTarget($this, "setStatusToInProgress"));
-		$template->setVariable("SET_IN_PROGRESS_TXT", $this->plugin->txt("set_in_progress"));
- 
-		global $ilUser;
-		$progress = new ilLPStatusPlugin($this->object->getId());
-		$status = $progress->determineStatus($this->object->getId(), $ilUser->getId());
-		$template->setVariable("LP_STATUS", $this->plugin->txt("lp_status_".$status));
-		$template->setVariable("LP_INFO", $this->plugin->txt("lp_status_info"));
- 
-		$this->tpl->setContent($template->get());
-	}
- 
-	/**
+    protected function showContent() {
+        /** @var ilObjTestRepositoryObject $object */
+        $object = $this->object;
+
+        $this->tabs->activateTab("contents");
+        $form = new ilPropertyFormGUI();
+        $form->setTitle($object->getTitle());
+        /*
+        $title = new ilNonEditableValueGUI($this->plugin->txt("title"));
+        $title->setInfo($object->getTitle());
+        $form->addItem($title);
+        */
+
+        $listgui = new ListGUI();
+        $listgui->addTermSelectionToForm($form);
+
+        $fau_org = new ilNonEditableValueGUI('FAU Org Nummer'); //read!
+        $fau_org->setValue($this->object->getFAUOrgNumber());
+        $form->addItem($fau_org);
+
+        //Course Number (obj_id, ref_id oder course_id erlaubt
+        $course_obj_ref = new ilNumberInputGUI('Kurs-Nummer', 'course_number_entry');
+        $form->addItem($course_obj_ref);
+
+        //formular mit optional-filter wie in "lehrveranstaltung aus campo suchen";
+        // TODO: how to get namespace fau in here?
+
+        //liste anzeigen wie "lehrveranstaltungen aus campo suchen"
+
+        //$start_filter = $form->addCommandButton('', 'Filter anwenden', 'start_filter');
+        //$reset_filter = $form->addCommandButton('', 'Filter zurücksetzen', 'reset_filter');
+        $form->addCommandButton('', 'Add Course', 'add_course');
+        $form->setFormAction($this->ctrl->getFormAction($this, "addCourse"));
+        $list = $this->object->getChosenCourseList();
+        $ausgabe = '';
+        foreach($list as $element) {
+            $ausgabe .= "<p>";
+            $ausgabe .= "Kurs-ID: ";
+            $ausgabe .= $element['course_id'];
+            $ausgabe .= ", Titel: ";
+            $ausgabe .= $element['title'];
+            $ausgabe .= "</p>";
+        }
+        $this->tpl->setContent($form->getHTML() . $ausgabe);
+        return $form;
+    }
+
+    protected function showExports() {
+        global $ilToolbar, $ilCtrl;
+        /** @var ilObjTestRepositoryObject $object */
+        $object = $this->object;
+
+        $this->tabs->activateTab("exports");
+
+        $form = new ilPropertyFormGUI();
+        $form->setTitle($object->getTitle());
+
+        $i = new ilNonEditableValueGUI($this->plugin->txt("title"));
+        $i->setInfo($object->getTitle());
+        $form->addItem($i);
+
+        $export_type = new ilSelectInputGUI($this->lng->txt('Export Art'), 'term_id');
+        $export_type->setOptions(['CSV', 'EVASYS']);
+        $form->addItem($export_type);
+
+        $form->addCommandButton('export_to_chosen', 'Exportieren', 'export_to_chosen');
+
+        $this->tpl->setContent($form->getHTML());
+    }
+
+    private function exportToChosen() {
+        //do export with chosen type of export
+        var_dump("Auswahl:");
+        var_dump("check how to get auswahl");
+        exit();
+    }
+
+    /**
 	 * @param $object ilObjEvaluationManager2
 	 * @param $form ilPropertyFormGUI
 	 */
 	private function fillObject($object, $form) {
 		$object->setTitle($form->getInput('title'));
 		$object->setDescription($form->getInput('description'));
-		$object->setOnline($form->getInput('online'));
+		$object->setFAUOrgNumber($form->getInput('fau_org_number'));
 	}
- 
-	protected function showExport() {
-		require_once("./Services/Export/classes/class.ilExportGUI.php");
-		$export = new ilExportGUI($this);
-		$export->addFormat("xml");
-		$ret = $this->ctrl->forwardCommand($export);
- 
-	}
- 
-	/**
-	 * We need this method if we can't access the tabs otherwise...
-	 */
+
 	private function activateTab() {
 		$next_class = $this->ctrl->getCmdClass();
- 
-		switch($next_class) {
-			case 'ilexportgui':
-				$this->tabs->activateTab("export");
+ 		switch($next_class) {
+			case 'showContent':
+				$this->tabs->activateTab("contents");
 				break;
+            case 'showExports':
+                $this->tabs->activateTab("exports");
+                break;
 		}
- 
+
 		return;
 	}
- 
-	private function setStatusToCompleted() {
-		$this->setStatusAndRedirect(ilLPStatus::LP_STATUS_COMPLETED_NUM);
-	}
- 
-	private function setStatusAndRedirect($status) {
-		global $ilUser;
-		$_SESSION[self::LP_SESSION_ID] = $status;
-		ilLPStatusWrapper::_updateStatus($this->object->getId(), $ilUser->getId());
-		$this->ctrl->redirect($this, $this->getStandardCmd());
-	}
- 
-	protected function setStatusToFailed() {
-		$this->setStatusAndRedirect(ilLPStatus::LP_STATUS_FAILED_NUM);
-	}
- 
-	protected function setStatusToInProgress() {
-		$this->setStatusAndRedirect(ilLPStatus::LP_STATUS_IN_PROGRESS_NUM);
-	}
- 
-	protected function setStatusToNotAttempted() {
-		$this->setStatusAndRedirect(ilLPStatus::LP_STATUS_NOT_ATTEMPTED_NUM);
-	}
+
+    protected function addCourse(){
+        $form = $this->showContent();
+        $form->setValuesByPost();
+        if($form->checkInput()) {
+            $result = $this->object->addCourseToObject($form->getInput('course_number_entry'));
+            if ($result) {
+                ilUtil::sendSuccess($this->plugin->txt("update_successful"), true);
+            } else {
+                ilUtil::sendFailure($this->plugin->txt("Number not accepted"), true);
+            }
+            $this->ctrl->redirect($this, "showContent");
+        }
+        $this->tpl->setContent($form->getHTML());
+    }
 }
 ?>
