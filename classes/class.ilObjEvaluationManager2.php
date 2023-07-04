@@ -1,7 +1,6 @@
 <?php
  
 include_once("./Services/Repository/classes/class.ilObjectPlugin.php");
-require_once("./Services/Tracking/interfaces/interface.ilLPStatusPlugin.php");
 require_once("./Customizing/global/plugins/Services/Repository/RepositoryObject/EvaluationManager2/classes/class.ilObjEvaluationManager2GUI.php");
  
 /**
@@ -116,12 +115,24 @@ class ilObjEvaluationManager2 extends ilObjectPlugin
 		return $this->fauOrgNumber;
 	}
 
-    public function addCourseToObject($courseNumber) : bool {
+    private function getCourseNumberOfRefID($courseRefID) : int {
+        global $ilDB;
+        $set = $ilDB->query("SELECT fsc.course_id FROM 
+                                   object_reference orf JOIN fau_study_courses fsc 
+                                   ON orf.obj_id = fsc.ilias_obj_id 
+                                   WHERE orf.ref_id = ".$courseRefID);
+        $result = $ilDB->fetchAll($set);
+        if(empty($result)) return 0;
+        return $result[0]['course_id'];
+    }
+
+    public function addCourseToObject($courseRefID) : bool {
         global $ilDB;
 
+        $courseNumber = $this->getCourseNumberOfRefID($courseRefID);
         $isCourseAlreadyUsed = $this->checkIfCourseIsAlreadyUsed($courseNumber);
         $isCourseInOrg = $this->checkIfCourseIsInOrgUnit($courseNumber);
-        if($isCourseAlreadyUsed || !$isCourseInOrg) {
+        if($isCourseAlreadyUsed || !$isCourseInOrg || $courseNumber == 0) {
             return false;
         }
 
@@ -156,7 +167,6 @@ class ilObjEvaluationManager2 extends ilObjectPlugin
                                    WHERE sc.course_id = ". $courseNumber .
                                    " AND eo.fauorg_nr = " . $this->getFAUOrgNumber());
         $result = $ilDB->fetchAll($set);
-        var_dump($result);
         if(empty($result)) { //Kurs ist nicht in Org-Einheit zu finden
             return false;
         } else {
@@ -171,6 +181,17 @@ class ilObjEvaluationManager2 extends ilObjectPlugin
                   ON eo.event_id = sc.event_id AND xc.course_id = sc.course_id
                   where xc.obj_id = " . $this->getId() . " AND eo.fauorg_nr = " . $this->getFAUOrgNumber());
         return $ilDB->fetchAll($set);
+    }
+
+    public function isFAUOrgNumberValid(int $fauOrgNumber) : bool {
+        global $ilDB;
+        $set = $ilDB->query("SELECT defaulttext FROM fau_org_orgunits WHERE fauorg_nr = ". $fauOrgNumber);
+        $result = $ilDB->fetchAll($set);
+        if(empty($result)) { //org-nummer existiert nicht
+            return false;
+        } else {
+            return true;
+        }
     }
 }
 ?>

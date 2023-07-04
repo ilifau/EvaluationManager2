@@ -12,15 +12,16 @@ require_once("./Services/Form/classes/class.ilPropertyFormGUI.php");
 require_once("./Services/Form/classes/class.ilTextInputGUI.php");
 require_once("./Services/Form/classes/class.ilCheckboxInputGUI.php");
 require_once("./Customizing/global/plugins/Services/Repository/RepositoryObject/EvaluationManager2/classes/class.ilEvaluationManager2Plugin.php");
+require_once("./Customizing/global/plugins/Services/Repository/RepositoryObject/EvaluationManager2/classes/class.ilObjEvaluationManager2Export.php");
  
 /**
  * @ilCtrl_isCalledBy ilObjEvaluationManager2GUI: ilRepositoryGUI, ilAdministrationGUI, ilObjPluginDispatchGUI, ilCommonActionDispatcherGUI
  * @ilCtrl_Calls ilObjEvaluationManager2GUI: ilPermissionGUI, ilInfoScreenGUI, ilObjectCopyGUI, ilCommonActionDispatcherGUI, ilExportGUI
  */
-class ListGUI extends BaseGUI {
+class ListGUI extends fauStudySearchGUI {
     public function __construct(){
         parent::__construct();
-        $this->lng->loadLanguageModule('xemv');
+        $this->lng->loadLanguageModule('xevm');
     }
 
     public function addTermSelectionToForm(ilPropertyFormGUI $form) {
@@ -85,18 +86,19 @@ class ilObjEvaluationManager2GUI extends ilObjectPluginGUI
 			case "editProperties":   // list all commands that need write permission here
 			case "updateProperties":
 			case "saveProperties":
-			case "showExport":
             case "addCourse":
-            case "export_to_chosen":
+            case "exportToChosen":
+            case "showContent":
+            case "showExports":
 				$this->checkPermission("write");
 				$this->$cmd();
 				break;
 
-            case "showContent":
-            case "showExports":
+                /*
 				$this->checkPermission("read");
 				$this->$cmd();
 				break;
+                */
 		}
 	}
 
@@ -205,7 +207,11 @@ class ilObjEvaluationManager2GUI extends ilObjectPluginGUI
 		$form = $this->initPropertiesForm();
 		$form->setValuesByPost();
 		if($form->checkInput()) {
-			$this->fillObject($this->object, $form);
+			if( !$this->fillObject($this->object, $form) ) {
+                ilUtil::sendFailure($this->plugin->txt("Org Number not existent"), true);
+                $this->ctrl->redirect($this, "editProperties");
+                return;
+            }
 			$this->object->update();
 			ilUtil::sendSuccess($this->plugin->txt("update_successful"), true);
 			$this->ctrl->redirect($this, "editProperties");
@@ -217,34 +223,29 @@ class ilObjEvaluationManager2GUI extends ilObjectPluginGUI
 
     }
  
-    protected function showContent() {
+    protected function showContent() : ilPropertyFormGUI {
         /** @var ilObjTestRepositoryObject $object */
         $object = $this->object;
 
         $this->tabs->activateTab("contents");
         $form = new ilPropertyFormGUI();
         $form->setTitle($object->getTitle());
-        /*
-        $title = new ilNonEditableValueGUI($this->plugin->txt("title"));
-        $title->setInfo($object->getTitle());
-        $form->addItem($title);
-        */
 
+
+        //formular mit optional-filter wie in "lehrveranstaltung aus campo suchen";
+        // TODO: how to get namespace fau in here?
+        //liste anzeigen wie "lehrveranstaltungen aus campo suchen"
         $listgui = new ListGUI();
         $listgui->addTermSelectionToForm($form);
+        //$listgui->addRepositorySelector($form);
 
         $fau_org = new ilNonEditableValueGUI('FAU Org Nummer'); //read!
         $fau_org->setValue($this->object->getFAUOrgNumber());
         $form->addItem($fau_org);
 
         //Course Number (obj_id, ref_id oder course_id erlaubt
-        $course_obj_ref = new ilNumberInputGUI('Kurs-Nummer', 'course_number_entry');
+        $course_obj_ref = new ilNumberInputGUI('Kurs-Nummer', 'course_ref_id');
         $form->addItem($course_obj_ref);
-
-        //formular mit optional-filter wie in "lehrveranstaltung aus campo suchen";
-        // TODO: how to get namespace fau in here?
-
-        //liste anzeigen wie "lehrveranstaltungen aus campo suchen"
 
         //$start_filter = $form->addCommandButton('', 'Filter anwenden', 'start_filter');
         //$reset_filter = $form->addCommandButton('', 'Filter zurücksetzen', 'reset_filter');
@@ -282,15 +283,16 @@ class ilObjEvaluationManager2GUI extends ilObjectPluginGUI
         $export_type->setOptions(['CSV', 'EVASYS']);
         $form->addItem($export_type);
 
-        $form->addCommandButton('export_to_chosen', 'Exportieren', 'export_to_chosen');
+        $form->addCommandButton('exportToChosen', 'Exportieren', 'export_to_chosen');
+        $form->setFormAction($this->ctrl->getFormAction($this, "exportToChosen"));
 
         $this->tpl->setContent($form->getHTML());
     }
 
     private function exportToChosen() {
         //do export with chosen type of export
-        var_dump("Auswahl:");
-        var_dump("check how to get auswahl");
+        $export = new ilObjEvaluationManager2Export($this->object);
+        $export->doExport();
         exit();
     }
 
@@ -298,10 +300,12 @@ class ilObjEvaluationManager2GUI extends ilObjectPluginGUI
 	 * @param $object ilObjEvaluationManager2
 	 * @param $form ilPropertyFormGUI
 	 */
-	private function fillObject($object, $form) {
+	private function fillObject($object, $form) : bool{
 		$object->setTitle($form->getInput('title'));
 		$object->setDescription($form->getInput('description'));
-		$object->setFAUOrgNumber($form->getInput('fau_org_number'));
+        if(!$this->object->isFAUOrgNumberValid($form->getInput('fau_org_number'))) return false;
+        $object->setFAUOrgNumber($form->getInput('fau_org_number'));
+        return true;
 	}
 
 	private function activateTab() {
@@ -322,7 +326,7 @@ class ilObjEvaluationManager2GUI extends ilObjectPluginGUI
         $form = $this->showContent();
         $form->setValuesByPost();
         if($form->checkInput()) {
-            $result = $this->object->addCourseToObject($form->getInput('course_number_entry'));
+            $result = $this->object->addCourseToObject($form->getInput('course_ref_id'));
             if ($result) {
                 ilUtil::sendSuccess($this->plugin->txt("update_successful"), true);
             } else {
