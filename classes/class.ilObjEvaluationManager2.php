@@ -178,8 +178,8 @@ class ilObjEvaluationManager2 extends ilObjectPlugin
     public function getChosenCourseList() : array {
         global $ilDB;
         $set = $ilDB->query(
-            "SELECT eo.fauorg_nr, eo.event_id, sc.course_id, sc.title, xc.obj_id, xc.evaluate FROM fau_study_event_orgs eo JOIN fau_study_courses sc JOIN rep_robj_xevm_courses xc
-                  ON eo.event_id = sc.event_id AND xc.course_id = sc.course_id
+            "SELECT eo.fauorg_nr, eo.event_id, sc.course_id, sc.title, xc.obj_id, xc.evaluate, obd.description FROM fau_study_event_orgs eo JOIN fau_study_courses sc JOIN rep_robj_xevm_courses xc JOIN object_reference obr JOIN object_description obd
+                  ON eo.event_id = sc.event_id AND xc.course_id = sc.course_id AND obr.obj_id = sc.ilias_obj_id AND obd.obj_id = obr.obj_id
                   where xc.obj_id = " . $this->getId() . " AND eo.fauorg_nr = " . $this->getFAUOrgNumber());
         return $ilDB->fetchAll($set);
     }

@@ -105,10 +105,6 @@ class ilObjEvaluationManager2GUI extends ilObjectPluginGUI
 		return "showContent";
 	}
  
-//
-// DISPLAY TABS
-//
- 
 	/**
 	 * Set tabs
 	 */
@@ -128,14 +124,14 @@ class ilObjEvaluationManager2GUI extends ilObjectPluginGUI
         //TODO: fred told me to use ilcust
 		if ($ilAccess->checkAccess("write", "", $this->object->getRefId()))
 		{
-            $this->tabs->addTab("content", $this->txt("content"), $ilCtrl->getLinkTarget($this, "showContent"));
+            $this->tabs->addTab("contents", $this->txt("contents"), $ilCtrl->getLinkTarget($this, "showContent"));
             $this->tabs->addTab("exports", $this->txt("exports"), $ilCtrl->getLinkTarget($this, "showExports"));
 			$this->tabs->addTab("properties", $this->txt("properties"), $ilCtrl->getLinkTarget($this, "editProperties"));
 		}
 
         $this->addInfoTab();
 		$this->addPermissionTab();
-		$this->activateTab();
+		//$this->activateTab();
 	}
  
 	/**
@@ -206,7 +202,7 @@ class ilObjEvaluationManager2GUI extends ilObjectPluginGUI
     protected function showContent() {
         global $DIC;
 
-        $this->tabs->activateTab("content");
+        $this->tabs->activateTab("contents");
 
         $list_tpl = new ilTemplate("tpl.xevm_content.html",
             true,
@@ -229,11 +225,12 @@ class ilObjEvaluationManager2GUI extends ilObjectPluginGUI
         }
         /* -- */
         $icon_crs = $factory->symbol()->icon()->standard('crs', $this->lng->txt('fau_search_ilias_course'), 'medium');
+        $icon_missing = $factory->symbol()->icon()->standard('pecrs', $this->lng->txt('fau_search_ilias_course_not'), 'medium');
         $items = array();
         $list = $this->object->getChosenCourseList();
         foreach($list as $element) {
             $item = $factory->item()->standard($element['title'])
-                                                    ->withDescription("Kurs-ID: " . $element['course_id'])
+                                                    ->withDescription("Beschreibung: " . $element['description'])
                                                     ->withLeadIcon($icon_crs)
                                                     ->withProperties(['Evaluate' => $element['evaluate'] ? 'Ja' : 'Nein'])
                                                     ->withCheckbox('checkbox_name', true);
@@ -301,7 +298,6 @@ class ilObjEvaluationManager2GUI extends ilObjectPluginGUI
         }
 
         $this->tpl->setContent($form->getHTML());
-        //do export with chosen type of export
         return $form;
     }
 
@@ -316,7 +312,7 @@ class ilObjEvaluationManager2GUI extends ilObjectPluginGUI
         $object->setFAUOrgNumber($form->getInput('fau_org_number'));
         return true;
 	}
-
+/*
 	private function activateTab() {
 		$next_class = $this->ctrl->getCmdClass();
  		switch($next_class) {
@@ -328,6 +324,7 @@ class ilObjEvaluationManager2GUI extends ilObjectPluginGUI
                 break;
 		}
 	}
+*/
 
     protected function addCourse(){
         $form = $this->showContent();

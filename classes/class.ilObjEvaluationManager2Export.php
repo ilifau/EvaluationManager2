@@ -39,35 +39,55 @@ class ilObjEvaluationManager2Export{
     public function doExport()
     {
         $this->setCourses();
+        $courseList = $this->getCourses();
         if ($this->isEvaSys) {
-            $csvOutput = '';
-            $seperator = '*';
-            $lineBreak = '<br>';
-            $courseList = $this->getCourses();
-
-            $header = 'Eva-Key-EventID-CourseID-Event-Course-Salutation-Title-FirstName-LastName-EMail-Link-Participant'.$lineBreak;
-            $csvOutput .= $header;
-            foreach ($courseList as $course) {
-                $csvOutput .= $course['Evaluate'].$seperator;
-                $csvOutput .= $course['Key'].$seperator;
-                $csvOutput .= $course['Event-ID'].$seperator;
-                $csvOutput .= $course['Course-ID'].$seperator;
-                $csvOutput .= $course['Event'].$seperator;
-                $csvOutput .= $course['Course'].$seperator;
-                $csvOutput .= $course['Salutation'].$seperator;
-                $csvOutput .= $course['Title'].$seperator;
-                $csvOutput .= $course['Firstname'].$seperator;
-                $csvOutput .= $course['Lastname'].$seperator;
-                $csvOutput .= $course['EMail'].$seperator;
-                $csvOutput .= $course['Link'].$seperator;
-                $csvOutput .= $course['Participants'].$seperator;
-                $csvOutput .= $lineBreak;
+            $separator = ";";
+            $csv_courses = array();
+            $csv_participants = array();
+            $head_row_course = array('Function', 'Salutation', 'Title', 'Firstname', 'Lastname',
+                              'E-Mail', 'Name', 'Key', 'Study-Course', 'Type', 'Participants');
+            array_push($csv_courses, ilUtil::processCSVRow($head_row_course, TRUE, $separator) );
+            foreach ($courseList as $courses) {
+                $row_array = array('Dozent/in', $courses['Salutation'], $courses['Title'], $courses['Firstname'],
+                              $courses['Lastname'], $courses['EMail'], $courses['Course'], $courses['Key'], '', $courses['Type'],
+                              $courses['Participants']);
+                array_push($csv_courses, ilUtil::processCSVRow($row_array, TRUE, $separator));
             }
-            var_dump($csvOutput);
+            //TODO: build up evasys export
+            echo '<pre>' . var_export($csv_courses, true) . '</pre>';
             exit();
 
+
+            $head_row_participants = array('Key', 'E-Mail');
+            array_push($csv_participants, ilUtil::processCSVRow($head_row_participants, TRUE, $separator) );
+
+            $output = 'hallo hier!';
+            $output_new = 'hier hallo!';
+
+            ilUtil::deliverData($output, "event_" . $this->object->getTitle() .  ".evasys");
+            ilUtil::deliverData($output_new, "participants_" . $this->object->getTitle() .  ".evasys");
+
+
         } else {
-            //build file and save csv
+            $csv = array();
+            $separator = ";";
+            $head_row = array('Evaluation', 'Key', 'Type', 'Event-ID', 'Course-ID',
+                              'Event','Course','Salutation','Title','Firstname',
+                              'Lastname','E-Mail','Link','Participant');
+            array_push($csv, ilUtil::processCSVRow($head_row, TRUE, $separator) );
+            foreach ($courseList as $course) {
+                $csvrow = array();
+                foreach($course as $type => $value) {
+                    array_push($csvrow, $value);
+                }
+                array_push($csv, ilUtil::processCSVRow($csvrow, TRUE, $separator));
+            }
+
+            $csvoutput = '';
+            foreach($csv as $reihe) {
+                $csvoutput .= join($separator, $reihe). "\n";
+            }
+            ilUtil::deliverData($csvoutput, $this->object->getTitle() .  ".csv");
         }
 
         return true;
@@ -93,7 +113,11 @@ class ilObjEvaluationManager2Export{
         global $ilDB;
         $course_informations = array();
         $set = $ilDB->query("SELECT sc.term_year, sc.term_type_id, eo.event_id, sc.course_id, /* all infos above to key-generation */
-               se.eventtype, se.title as event_title, sc.title as course_title, ud.gender, ud.title as doc_title, ud.firstname, ud.lastname, ud.email, sc.ilias_obj_id, xc.evaluate
+                                          se.eventtype, se.title as event_title, 
+                                          sc.title as course_title, ud.gender, 
+                                          ud.title as doc_title, ud.firstname, 
+                                          ud.lastname, ud.email, sc.ilias_obj_id, 
+                                          xc.evaluate
         FROM fau_study_event_orgs eo JOIN fau_study_courses sc
                                      JOIN rep_robj_xevm_courses xc
                                      JOIN fau_study_events se
@@ -119,14 +143,15 @@ class ilObjEvaluationManager2Export{
             $temp_value_array['Key'] = $this->buildKey($this->isEvaSys,"Prefix",
                                                        $element['term_year'], $element['term_type_id'],
                                                        $element['event_id'], $element['course_id']);
+            $temp_value_array['Type'] = $element['eventtype'];
             $temp_value_array['Event-ID'] = $element['event_id'];
             $temp_value_array['Course-ID'] = $element['course_id'];
-            $temp_value_array['Event'] = $element['event_title']; // !!!! same name of field
-            $temp_value_array['Course'] = $element['course_title']; // !!!! same name of field
+            $temp_value_array['Event'] = $element['event_title'];
+            $temp_value_array['Course'] = $element['course_title'];
             if($element['gender'] == 'm') $temp_value_array['Salutation'] = 'Herr';
             if($element['gender'] == 'f') $temp_value_array['Salutation'] = 'Frau';
             if($element['gender'] == 'n') $temp_value_array['Salutation'] = '';
-            $temp_value_array['Title'] = $element['doc_title']; // !!!! same name of field
+            $temp_value_array['Title'] = $element['doc_title'];
             $temp_value_array['Firstname'] = $element['firstname'];
             $temp_value_array['Lastname'] = $element['lastname'];
             $temp_value_array['EMail'] = $element['email'];
