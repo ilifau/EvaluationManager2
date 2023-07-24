@@ -1,10 +1,5 @@
 <?php
 
-/* TODO:
-aufruf von generierung von csv oder evasys-datei
-download sofort (ilutil deliverdata)
-*/
-
 class ilObjEvaluationManager2Export{
     /**
      * EvaluationManager2 Object to read saved course values
@@ -25,33 +20,69 @@ class ilObjEvaluationManager2Export{
 
     protected $export_courses = array();
 
+    protected bool $isEvaSys;
+
     /**
      * set local object
-     * @param $evaman2_object ilObjEvaluationManager2
+     * @param ilObjEvaluationManager2 $evaman2_object
+     * @param bool $isEvaSys
      */
 
-    function __construct(ilObjEvaluationManager2 $evaman2_object)
-    {
+    function __construct(ilObjEvaluationManager2 $evaman2_object, bool $isEvaSys) {
         $this->object = $evaman2_object;
+        $this->isEvaSys = $isEvaSys;
     }
 
     /**
-     * @parameter string
      * @return bool
      */
-    public function doExport(bool $isEvaSys) {
-        $this->setCourses($isEvaSys);
+    public function doExport()
+    {
+        $this->setCourses();
+        if ($this->isEvaSys) {
+            $csvOutput = '';
+            $seperator = '*';
+            $lineBreak = '<br>';
+            $courseList = $this->getCourses();
+
+            $header = 'Eva-Key-EventID-CourseID-Event-Course-Salutation-Title-FirstName-LastName-EMail-Link-Participant'.$lineBreak;
+            $csvOutput .= $header;
+            foreach ($courseList as $course) {
+                $csvOutput .= $course['Evaluate'].$seperator;
+                $csvOutput .= $course['Key'].$seperator;
+                $csvOutput .= $course['Event-ID'].$seperator;
+                $csvOutput .= $course['Course-ID'].$seperator;
+                $csvOutput .= $course['Event'].$seperator;
+                $csvOutput .= $course['Course'].$seperator;
+                $csvOutput .= $course['Salutation'].$seperator;
+                $csvOutput .= $course['Title'].$seperator;
+                $csvOutput .= $course['Firstname'].$seperator;
+                $csvOutput .= $course['Lastname'].$seperator;
+                $csvOutput .= $course['EMail'].$seperator;
+                $csvOutput .= $course['Link'].$seperator;
+                $csvOutput .= $course['Participants'].$seperator;
+                $csvOutput .= $lineBreak;
+            }
+            var_dump($csvOutput);
+            exit();
+
+        } else {
+            //build file and save csv
+        }
+
         return true;
+    }
+
+    public function doImport(){
+        var_dump("Import started");
+        exit();
     }
 
     /**
      * set courses to course-array for export
      */
-    protected function setCourses(bool $isEvaSys) {
+    protected function setCourses() {
         $this->export_courses = $this->getCourses();
-        echo '<pre>' . var_export($this->export_courses, true) . '</pre>';
-        exit();
-
     }
 
     /**
@@ -62,7 +93,7 @@ class ilObjEvaluationManager2Export{
         global $ilDB;
         $course_informations = array();
         $set = $ilDB->query("SELECT sc.term_year, sc.term_type_id, eo.event_id, sc.course_id, /* all infos above to key-generation */
-               se.eventtype, se.title as event_title, sc.title as course_title, ud.gender, ud.title as doc_title, ud.firstname, ud.lastname, ud.email, sc.ilias_obj_id
+               se.eventtype, se.title as event_title, sc.title as course_title, ud.gender, ud.title as doc_title, ud.firstname, ud.lastname, ud.email, sc.ilias_obj_id, xc.evaluate
         FROM fau_study_event_orgs eo JOIN fau_study_courses sc
                                      JOIN rep_robj_xevm_courses xc
                                      JOIN fau_study_events se
@@ -84,8 +115,8 @@ class ilObjEvaluationManager2Export{
         $courses_list = $ilDB->fetchAll($set);
         foreach ($courses_list as $element) {
             $temp_value_array = $this->export_value_array;
-            $temp_value_array['Evaluate'] = 1;
-            $temp_value_array['Key'] = $this->buildKey(false,"Prefix",
+            $temp_value_array['Evaluate'] = $element['evaluate'];
+            $temp_value_array['Key'] = $this->buildKey($this->isEvaSys,"Prefix",
                                                        $element['term_year'], $element['term_type_id'],
                                                        $element['event_id'], $element['course_id']);
             $temp_value_array['Event-ID'] = $element['event_id'];
@@ -126,6 +157,11 @@ class ilObjEvaluationManager2Export{
         return "https://www.studon.fau.de/campo/course/".$course_id;
     }
 
+    /**
+     * get Amount of Participants in Course
+     * @param string $ilias_obj_id
+     * @return string
+     */
     protected function getParticipantCount(string $ilias_obj_id) : string {
         global $ilDB;
         $set = $ilDB->query("       
@@ -135,7 +171,6 @@ class ilObjEvaluationManager2Export{
               ON fum.obj_id = fsc.ilias_obj_id AND ud.usr_id = fum.user_id
               WHERE obj_id = ".$ilias_obj_id." AND event_responsible = 0 AND course_responsible = 0 AND instructor = 0 AND individual_instructor = 0");
         $participantCount = $ilDB->fetchAll($set);
-        $participantCount = $participantCount[0]['COUNT(ud.firstname)'];
-        return $participantCount;
+        return $participantCount[0]['COUNT(ud.firstname)'];;
     }
 }

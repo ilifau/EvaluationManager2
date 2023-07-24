@@ -16,28 +16,17 @@ require_once("./Customizing/global/plugins/Services/Repository/RepositoryObject/
  
 /**
  * @ilCtrl_isCalledBy ilObjEvaluationManager2GUI: ilRepositoryGUI, ilAdministrationGUI, ilObjPluginDispatchGUI, ilCommonActionDispatcherGUI
- * @ilCtrl_Calls ilObjEvaluationManager2GUI: ilPermissionGUI, ilInfoScreenGUI, ilObjectCopyGUI, ilCommonActionDispatcherGUI, ilExportGUI
+ * @ilCtrl_Calls ilObjEvaluationManager2GUI: ilPermissionGUI, ilInfoScreenGUI, ilObjectCopyGUI, ilCommonActionDispatcherGUI
  */
-class ListGUI extends fauStudySearchGUI {
+class ListGUI extends BaseGUI {
+
     public function __construct(){
         parent::__construct();
         $this->lng->loadLanguageModule('xevm');
     }
 
     public function addTermSelectionToForm(ilPropertyFormGUI $form) {
-        $term = new ilSelectInputGUI('Semester', 'term_id');
-        $options = $this->dic->fau()->study()->getTermSearchOptions(null, false);
-        $current = $this->dic->fau()->study()->getCurrentTerm()->toString();
-        $term->setOptions($options);
-        $term->setValue($current);
-        $form->addItem($term);
-    }
 
-    public function addRepositorySelector(ilPropertyFormGUI $form) {
-        $ref = new fauRepositorySelectorInputGUI($this->lng->txt('search_area'), 'search_ref_id');
-        $ref->setTypeWhitelist(['root', 'cat']);
-        $ref->setSelectableTypes(['cat']);
-        $form->addItem($ref);
     }
 }
 
@@ -49,30 +38,32 @@ class ilObjEvaluationManager2GUI extends ilObjectPluginGUI
 	/** @var  ilTabsGUI */
 	protected $tabs;
 
-	/** @var  ilTemplate */
-	public $tpl;
+    /** @var ilTemplate */
+    public $tpl;
+
+    protected \ILIAS\DI\UIServices $ui;
 
 	/**
 	 * Initialisation
 	 */
 	protected function afterConstructor()
 	{
-		global $ilCtrl, $ilTabs, $tpl;
-		$this->ctrl = $ilCtrl;
-		$this->tabs = $ilTabs;
-		$this->tpl = $tpl;
+        global $DIC;
+		$this->ctrl = $DIC->ctrl();
+		$this->tabs = $DIC->tabs();
+        $this->tpl = $DIC['tpl'];
 	}
- 
+/*
 	public function executeCommand() {
-		global $tpl;
-		return parent::executeCommand();;
+		return parent::executeCommand();
 	}
+*/
  
 	/**
 	 * Get type.
 	 */
-	final function getType()
-	{
+	final function getType(): string
+    {
 		return ilEvaluationManager2Plugin::ID;
 	}
  
@@ -87,18 +78,13 @@ class ilObjEvaluationManager2GUI extends ilObjectPluginGUI
 			case "updateProperties":
 			case "saveProperties":
             case "addCourse":
+            case "deleteCourse":
             case "exportToChosen":
             case "showContent":
             case "showExports":
 				$this->checkPermission("write");
 				$this->$cmd();
 				break;
-
-                /*
-				$this->checkPermission("read");
-				$this->$cmd();
-				break;
-                */
 		}
 	}
 
@@ -139,6 +125,7 @@ class ilObjEvaluationManager2GUI extends ilObjectPluginGUI
 
 		// a "properties" tab
         //TODO: only allow Administrator Roles to access Properties
+        //TODO: fred told me to use ilcust
 		if ($ilAccess->checkAccess("write", "", $this->object->getRefId()))
 		{
             $this->tabs->addTab("content", $this->txt("content"), $ilCtrl->getLinkTarget($this, "showContent"));
@@ -169,8 +156,6 @@ class ilObjEvaluationManager2GUI extends ilObjectPluginGUI
 		$form = new ilPropertyFormGUI();
 		$form->setTitle($this->plugin->txt("obj_xevm"));
 
-        $object = $this->object;
-
 		$title = new ilTextInputGUI($this->plugin->txt("title"), "title");
 		$title->setRequired(true);
 		$form->addItem($title);
@@ -180,7 +165,6 @@ class ilObjEvaluationManager2GUI extends ilObjectPluginGUI
 
         $fau_org = new ilTextInputGUI("choose fau org number", "fau_org_number");
         $fau_org->setRequired(true);
-        $value = strval($object->getFAUOrgNumber());
         $form->addItem($fau_org);
 
 		$form->setFormAction($this->ctrl->getFormAction($this, "saveProperties"));
@@ -218,82 +202,107 @@ class ilObjEvaluationManager2GUI extends ilObjectPluginGUI
 		}
 		$this->tpl->setContent($form->getHTML());
 	}
-
-    protected function saveNewCourseEntry() {
-
-    }
  
-    protected function showContent() : ilPropertyFormGUI {
-        /** @var ilObjTestRepositoryObject $object */
-        $object = $this->object;
+    protected function showContent() {
+        global $DIC;
+
+        $this->tabs->activateTab("content");
+
+        $list_tpl = new ilTemplate("tpl.xevm_content.html",
+            true,
+            true,
+            "Customizing/global/plugins/Services/Repository/RepositoryObject/EvaluationManager2");
+
+        $factory = $DIC->ui()->factory();
+        $renderer = $DIC->ui()->renderer();
+        $request = $DIC->http()->request();
+
+        /* -- only for 'understanding', can be removed at the end */
+        $form = $factory->input()->container()->form()->standard('#', []);
+        if ($request->getMethod() == "POST") {
+            $form = $form->withRequest($request);
+            $result = $form->getData();
+            var_dump($result);
+            exit();
+        } else {
+            $result = "No result yet.";
+        }
+        /* -- */
+        $icon_crs = $factory->symbol()->icon()->standard('crs', $this->lng->txt('fau_search_ilias_course'), 'medium');
+        $items = array();
+        $list = $this->object->getChosenCourseList();
+        foreach($list as $element) {
+            $item = $factory->item()->standard($element['title'])
+                                                    ->withDescription("Kurs-ID: " . $element['course_id'])
+                                                    ->withLeadIcon($icon_crs)
+                                                    ->withProperties(['Evaluate' => $element['evaluate'] ? 'Ja' : 'Nein'])
+                                                    ->withCheckbox('checkbox_name', true);
+            array_push($items, $item);
+        }
+
+        $group = $DIC->ui()->factory()->item()->group("Chosen Courses", $items);
+        $list_tpl->setVariable('EVA2_CONTENT', $DIC->ui()->renderer()->render($group));
+        $renderer->render($form);
 
         $this->tabs->activateTab("contents");
         $form = new ilPropertyFormGUI();
-        $form->setTitle($object->getTitle());
-
-
-        //formular mit optional-filter wie in "lehrveranstaltung aus campo suchen";
-        // TODO: how to get namespace fau in here?
-        //liste anzeigen wie "lehrveranstaltungen aus campo suchen"
+        $form->setTitle($this->object->getTitle());
         $listgui = new ListGUI();
         $listgui->addTermSelectionToForm($form);
-        //$listgui->addRepositorySelector($form);
 
         $fau_org = new ilNonEditableValueGUI('FAU Org Nummer'); //read!
         $fau_org->setValue($this->object->getFAUOrgNumber());
         $form->addItem($fau_org);
 
-        //Course Number (obj_id, ref_id oder course_id erlaubt
         $course_obj_ref = new ilNumberInputGUI('Kurs-Nummer', 'course_ref_id');
         $form->addItem($course_obj_ref);
 
-        //$start_filter = $form->addCommandButton('', 'Filter anwenden', 'start_filter');
-        //$reset_filter = $form->addCommandButton('', 'Filter zurücksetzen', 'reset_filter');
         $form->addCommandButton('', 'Add Course', 'add_course');
         $form->setFormAction($this->ctrl->getFormAction($this, "addCourse"));
-        $list = $this->object->getChosenCourseList();
-        $ausgabe = '';
-        foreach($list as $element) {
-            $ausgabe .= "<p>";
-            $ausgabe .= "Kurs-ID: ";
-            $ausgabe .= $element['course_id'];
-            $ausgabe .= ", Titel: ";
-            $ausgabe .= $element['title'];
-            $ausgabe .= "</p>";
-        }
-        $this->tpl->setContent($form->getHTML() . $ausgabe);
+        $form->setFormAction($this->ctrl->getFormAction($this, "deleteCourse"));
+        $this->tpl->setContent($form->getHTML() . $list_tpl->get());
         return $form;
     }
 
     protected function showExports() {
-        global $ilToolbar, $ilCtrl;
-        /** @var ilObjTestRepositoryObject $object */
-        $object = $this->object;
-
+        /** @var ilObjEvaluationManager2 $object */
         $this->tabs->activateTab("exports");
 
         $form = new ilPropertyFormGUI();
-        $form->setTitle($object->getTitle());
+        $form->setTitle($this->object->getTitle());
 
         $i = new ilNonEditableValueGUI($this->plugin->txt("title"));
-        $i->setInfo($object->getTitle());
+        $i->setInfo($this->object->getTitle());
         $form->addItem($i);
 
-        $export_type = new ilSelectInputGUI($this->lng->txt('Export Art'), 'term_id');
+        $export_type = new ilSelectInputGUI($this->lng->txt('ExportOptions'), 'exportoption');
         $export_type->setOptions(['CSV', 'EVASYS']);
         $form->addItem($export_type);
 
-        $form->addCommandButton('exportToChosen', 'Exportieren', 'export_to_chosen');
+        $form->addCommandButton('exportToChosen', 'Exportieren', 'exportToChosen');
         $form->setFormAction($this->ctrl->getFormAction($this, "exportToChosen"));
 
         $this->tpl->setContent($form->getHTML());
+        return $form;
     }
 
-    private function exportToChosen() {
+    private function exportToChosen() : ilPropertyFormGUI {
+        $form = $this->showExports();
+        $form->setValuesByPost();
+        if($form->checkInput()) {
+            $export = new ilObjEvaluationManager2Export($this->object, $form->getInput('exportoption'));
+            $result = $export->doExport();
+            if ($result) {
+                ilUtil::sendSuccess($this->plugin->txt("Export successful"), true);
+            } else {
+                ilUtil::sendFailure($this->plugin->txt("something went wrong"), true);
+            }
+            $this->ctrl->redirect($this, "showExport");
+        }
+
+        $this->tpl->setContent($form->getHTML());
         //do export with chosen type of export
-        $export = new ilObjEvaluationManager2Export($this->object);
-        $export->doExport();
-        exit();
+        return $form;
     }
 
     /**
@@ -318,8 +327,6 @@ class ilObjEvaluationManager2GUI extends ilObjectPluginGUI
                 $this->tabs->activateTab("exports");
                 break;
 		}
-
-		return;
 	}
 
     protected function addCourse(){
@@ -335,6 +342,15 @@ class ilObjEvaluationManager2GUI extends ilObjectPluginGUI
             $this->ctrl->redirect($this, "showContent");
         }
         $this->tpl->setContent($form->getHTML());
+    }
+
+    protected function deleteCourse() {
+        $form = $this->showContent();
+        $form->setValuesByPost();
+        if($form->checkInput()) {
+            var_dump($form->getInput('course_ref_id'));
+            exit();
+        }
     }
 }
 ?>

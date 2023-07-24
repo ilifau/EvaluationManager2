@@ -2,7 +2,7 @@
  
 include_once("./Services/Repository/classes/class.ilObjectPlugin.php");
 require_once("./Customizing/global/plugins/Services/Repository/RepositoryObject/EvaluationManager2/classes/class.ilObjEvaluationManager2GUI.php");
- 
+
 /**
  */
 class ilObjEvaluationManager2 extends ilObjectPlugin
@@ -137,7 +137,8 @@ class ilObjEvaluationManager2 extends ilObjectPlugin
         }
 
         $ilDB->manipulate("INSERT INTO rep_robj_xevm_courses ".
-            "(course_id, obj_id) VALUES (".
+            "(evaluate, course_id, obj_id) VALUES (".
+            $ilDB->quote("1", "integer")."," .
             $ilDB->quote($courseNumber, "integer")."," .
             $ilDB->quote($this->getId(), "integer").
             ")"
@@ -177,10 +178,26 @@ class ilObjEvaluationManager2 extends ilObjectPlugin
     public function getChosenCourseList() : array {
         global $ilDB;
         $set = $ilDB->query(
-            "SELECT eo.fauorg_nr, eo.event_id, sc.course_id, sc.title, xc.obj_id FROM fau_study_event_orgs eo JOIN fau_study_courses sc JOIN rep_robj_xevm_courses xc
+            "SELECT eo.fauorg_nr, eo.event_id, sc.course_id, sc.title, xc.obj_id, xc.evaluate FROM fau_study_event_orgs eo JOIN fau_study_courses sc JOIN rep_robj_xevm_courses xc
                   ON eo.event_id = sc.event_id AND xc.course_id = sc.course_id
                   where xc.obj_id = " . $this->getId() . " AND eo.fauorg_nr = " . $this->getFAUOrgNumber());
         return $ilDB->fetchAll($set);
+    }
+
+    public function delete_entry(string $ref_id) : boolean {
+
+        global $ilDB;
+        $set = $ilDB->query("DELETE FROM rep_robj_xevm_courses WHERE course_id = ". $ref_id);
+        var_dump($set);
+        exit();
+        if(empty($result)) { //org-nummer existiert nicht
+            return false;
+        } else {
+            return true;
+        }
+
+        var_dump($ref_id);
+        exit();
     }
 
     public function isFAUOrgNumberValid(int $fauOrgNumber) : bool {

@@ -1,6 +1,11 @@
 <#1>
 <?php
 $fields_courses = array(
+    'evaluate' => array(
+        'type' => 'integer',
+        'length' => 1,
+        'notnull' => false
+    ),
     'course_id' => array(
         'type' => 'integer',
         'length' => 4,
