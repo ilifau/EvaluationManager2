@@ -18,6 +18,7 @@ require_once("./Customizing/global/plugins/Services/Repository/RepositoryObject/
  * @ilCtrl_isCalledBy ilObjEvaluationManager2GUI: ilRepositoryGUI, ilAdministrationGUI, ilObjPluginDispatchGUI, ilCommonActionDispatcherGUI
  * @ilCtrl_Calls ilObjEvaluationManager2GUI: ilPermissionGUI, ilInfoScreenGUI, ilObjectCopyGUI, ilCommonActionDispatcherGUI
  */
+
 class ilObjEvaluationManager2GUI extends ilObjectPluginGUI
 {
 	/** @var  ilCtrl */
@@ -234,8 +235,6 @@ class ilObjEvaluationManager2GUI extends ilObjectPluginGUI
         $this->tabs->activateTab("contents");
         $form = new ilPropertyFormGUI();
         $form->setTitle($this->object->getTitle());
-        $listgui = new ListGUI();
-        $listgui->addTermSelectionToForm($form);
 
         $fau_org = new ilNonEditableValueGUI('FAU Org Nummer'); //read!
         $fau_org->setValue($this->object->getFAUOrgNumber());
