@@ -4,6 +4,7 @@ include_once("./Services/Repository/classes/class.ilObjectPlugin.php");
 require_once("./Customizing/global/plugins/Services/Repository/RepositoryObject/EvaluationManager2/classes/class.ilObjEvaluationManager2GUI.php");
 
 /**
+ * Class for EvaluationManager2-Object
  */
 class ilObjEvaluationManager2 extends ilObjectPlugin
 {
@@ -30,7 +31,7 @@ class ilObjEvaluationManager2 extends ilObjectPlugin
 	}
  
 	/**
-	 * Create object
+	 * Create object in database, with obj_id and fau_org_number
 	 */
 	function doCreate()
 	{
@@ -86,6 +87,7 @@ class ilObjEvaluationManager2 extends ilObjectPlugin
  
 	/**
 	 * Do Cloning
+     * TODO: is this necessary?
 	 */
 	function doClone($a_target_id,$a_copy_id,$new_obj)
 	{
@@ -115,6 +117,11 @@ class ilObjEvaluationManager2 extends ilObjectPlugin
 		return $this->fauOrgNumber;
 	}
 
+    /**
+     * find Course-Number with Ref-ID
+     * @param $courseRefID
+     * @return int
+     */
     private function getCourseNumberOfRefID($courseRefID) : int {
         global $ilDB;
         $set = $ilDB->query("SELECT fsc.course_id FROM 
@@ -126,6 +133,11 @@ class ilObjEvaluationManager2 extends ilObjectPlugin
         return $result[0]['course_id'];
     }
 
+    /**
+     * add Course to Database
+     * @param $courseRefID
+     * @return bool
+     */
     public function addCourseToObject($courseRefID) : bool {
         global $ilDB;
 
@@ -147,6 +159,11 @@ class ilObjEvaluationManager2 extends ilObjectPlugin
         return true;
     }
 
+    /**
+     * check if course already used with the object
+     * @param int $courseNumber
+     * @return bool
+     */
     protected function checkIfCourseIsAlreadyUsed(int $courseNumber) : bool {
         global $ilDB;
         $set = $ilDB->query("SELECT * FROM rep_robj_xevm_courses WHERE obj_id = ".
@@ -161,6 +178,11 @@ class ilObjEvaluationManager2 extends ilObjectPlugin
         }
     }
 
+    /**
+     * check if Course is in the fau_org_unit
+     * @param int $courseNumber
+     * @return bool
+     */
     protected function checkIfCourseIsInOrgUnit(int $courseNumber) : bool {
         global $ilDB;
         $set = $ilDB->query("SELECT * FROM fau_study_event_orgs eo 
@@ -175,6 +197,10 @@ class ilObjEvaluationManager2 extends ilObjectPlugin
         }
     }
 
+    /**
+     * get Course List of this object
+     * @return array
+     */
     public function getChosenCourseList() : array {
         global $ilDB;
         $set = $ilDB->query(
@@ -184,7 +210,28 @@ class ilObjEvaluationManager2 extends ilObjectPlugin
         return $ilDB->fetchAll($set);
     }
 
-    public function delete_entry(string $ref_id) : boolean {
+    /**
+     * check if fau_org_number is valid
+     * @param int $fauOrgNumber
+     * @return bool
+     */
+    public function isFAUOrgNumberValid(int $fauOrgNumber) : bool {
+        global $ilDB;
+        $set = $ilDB->query("SELECT defaulttext FROM fau_org_orgunits WHERE fauorg_nr = ". $fauOrgNumber);
+        $result = $ilDB->fetchAll($set);
+        if(empty($result)) { //org-nummer existiert nicht
+            return false;
+        } else {
+            return true;
+        }
+    }
+
+    /**
+     * delete Course-Entry from Course-List in database
+     * @param string $ref_id
+     * @return bool
+     */
+    public function deleteEntry(string $ref_id) : boolean {
 
         global $ilDB;
         $set = $ilDB->query("DELETE FROM rep_robj_xevm_courses WHERE course_id = ". $ref_id);
@@ -198,17 +245,6 @@ class ilObjEvaluationManager2 extends ilObjectPlugin
 
         var_dump($ref_id);
         exit();
-    }
-
-    public function isFAUOrgNumberValid(int $fauOrgNumber) : bool {
-        global $ilDB;
-        $set = $ilDB->query("SELECT defaulttext FROM fau_org_orgunits WHERE fauorg_nr = ". $fauOrgNumber);
-        $result = $ilDB->fetchAll($set);
-        if(empty($result)) { //org-nummer existiert nicht
-            return false;
-        } else {
-            return true;
-        }
     }
 }
 ?>

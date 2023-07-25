@@ -7,14 +7,19 @@ include_once("./Services/Repository/classes/class.ilRepositoryObjectPlugin.php")
 class ilEvaluationManager2Plugin extends ilRepositoryObjectPlugin
 {
 	const ID = "xevm";
- 
-	// must correspond to the plugin subdirectory
+
+    /**
+     * get plugin name
+     * @return string
+     */
 	function getPluginName()
 	{
 		return "EvaluationManager2";
 	}
 
-
+    /**
+     * uninstall related database tables
+     */
 	protected function uninstallCustom() {
 		global $ilDB;
         try {

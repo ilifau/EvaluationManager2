@@ -27,13 +27,13 @@ class ilObjEvaluationManager2Export{
      * @param ilObjEvaluationManager2 $evaman2_object
      * @param bool $isEvaSys
      */
-
     function __construct(ilObjEvaluationManager2 $evaman2_object, bool $isEvaSys) {
         $this->object = $evaman2_object;
         $this->isEvaSys = $isEvaSys;
     }
 
     /**
+     * function to do the Export of saved values in the database
      * @return bool
      */
     public function doExport()
@@ -54,20 +54,12 @@ class ilObjEvaluationManager2Export{
                 array_push($csv_courses, ilUtil::processCSVRow($row_array, TRUE, $separator));
             }
             //TODO: build up evasys export
-            echo '<pre>' . var_export($csv_courses, true) . '</pre>';
-            exit();
-
-
             $head_row_participants = array('Key', 'E-Mail');
             array_push($csv_participants, ilUtil::processCSVRow($head_row_participants, TRUE, $separator) );
-
-            $output = 'hallo hier!';
-            $output_new = 'hier hallo!';
-
+            echo '<pre>' . var_export($csv_courses, true) . '</pre>';
+            exit();
             ilUtil::deliverData($output, "event_" . $this->object->getTitle() .  ".evasys");
             ilUtil::deliverData($output_new, "participants_" . $this->object->getTitle() .  ".evasys");
-
-
         } else {
             $csv = array();
             $separator = ";";
@@ -93,6 +85,9 @@ class ilObjEvaluationManager2Export{
         return true;
     }
 
+    /**
+     * do Import and write data to database
+     */
     public function doImport(){
         var_dump("Import started");
         exit();

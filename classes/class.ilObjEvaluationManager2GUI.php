@@ -18,18 +18,6 @@ require_once("./Customizing/global/plugins/Services/Repository/RepositoryObject/
  * @ilCtrl_isCalledBy ilObjEvaluationManager2GUI: ilRepositoryGUI, ilAdministrationGUI, ilObjPluginDispatchGUI, ilCommonActionDispatcherGUI
  * @ilCtrl_Calls ilObjEvaluationManager2GUI: ilPermissionGUI, ilInfoScreenGUI, ilObjectCopyGUI, ilCommonActionDispatcherGUI
  */
-class ListGUI extends BaseGUI {
-
-    public function __construct(){
-        parent::__construct();
-        $this->lng->loadLanguageModule('xevm');
-    }
-
-    public function addTermSelectionToForm(ilPropertyFormGUI $form) {
-
-    }
-}
-
 class ilObjEvaluationManager2GUI extends ilObjectPluginGUI
 {
 	/** @var  ilCtrl */
@@ -44,7 +32,7 @@ class ilObjEvaluationManager2GUI extends ilObjectPluginGUI
     protected \ILIAS\DI\UIServices $ui;
 
 	/**
-	 * Initialisation
+	 * init of class-members
 	 */
 	protected function afterConstructor()
 	{
@@ -52,15 +40,11 @@ class ilObjEvaluationManager2GUI extends ilObjectPluginGUI
 		$this->ctrl = $DIC->ctrl();
 		$this->tabs = $DIC->tabs();
         $this->tpl = $DIC['tpl'];
+        $this->lng->loadLanguageModule('xevm');
 	}
-/*
-	public function executeCommand() {
-		return parent::executeCommand();
-	}
-*/
- 
+
 	/**
-	 * Get type.
+	 * Get type of plugin
 	 */
 	final function getType(): string
     {
@@ -135,7 +119,7 @@ class ilObjEvaluationManager2GUI extends ilObjectPluginGUI
 	}
  
 	/**
-	 * Edit Properties. This commands uses the form class to display an input form.
+	 * Edit Properties
 	 */
 	protected function editProperties()
 	{
@@ -146,6 +130,7 @@ class ilObjEvaluationManager2GUI extends ilObjectPluginGUI
 	}
  
 	/**
+     * init Form for Properties
 	 * @return ilPropertyFormGUI
 	 */
 	protected function initPropertiesForm() {
@@ -170,6 +155,7 @@ class ilObjEvaluationManager2GUI extends ilObjectPluginGUI
 	}
  
 	/**
+     * setup Fields for Property
 	 * @param $form ilPropertyFormGUI
 	 */
 	protected function addValuesToForm(&$form) {
@@ -181,13 +167,13 @@ class ilObjEvaluationManager2GUI extends ilObjectPluginGUI
 	}
  
 	/**
-	 * saveProperties
+	 * save Properties
 	 */
 	protected function saveProperties() {
 		$form = $this->initPropertiesForm();
 		$form->setValuesByPost();
 		if($form->checkInput()) {
-			if( !$this->fillObject($this->object, $form) ) {
+			if( !$this->fillProperties($this->object, $form) ) {
                 ilUtil::sendFailure($this->plugin->txt("Org Number not existent"), true);
                 $this->ctrl->redirect($this, "editProperties");
                 return;
@@ -198,7 +184,11 @@ class ilObjEvaluationManager2GUI extends ilObjectPluginGUI
 		}
 		$this->tpl->setContent($form->getHTML());
 	}
- 
+
+    /**
+     * show Content of Course-List with fields for managing courses
+     * @return ilPropertyFormGUI|void
+     */
     protected function showContent() {
         global $DIC;
 
@@ -261,6 +251,10 @@ class ilObjEvaluationManager2GUI extends ilObjectPluginGUI
         return $form;
     }
 
+    /**
+     * show Export GUI
+     * @return ilPropertyFormGUI
+     */
     protected function showExports() {
         /** @var ilObjEvaluationManager2 $object */
         $this->tabs->activateTab("exports");
@@ -283,6 +277,10 @@ class ilObjEvaluationManager2GUI extends ilObjectPluginGUI
         return $form;
     }
 
+    /**
+     * function to call export Course-List as CSV or EVASYS and show success or failure
+     * @return ilPropertyFormGUI
+     */
     private function exportToChosen() : ilPropertyFormGUI {
         $form = $this->showExports();
         $form->setValuesByPost();
@@ -302,30 +300,21 @@ class ilObjEvaluationManager2GUI extends ilObjectPluginGUI
     }
 
     /**
+     * fill Property GUI with values
 	 * @param $object ilObjEvaluationManager2
 	 * @param $form ilPropertyFormGUI
 	 */
-	private function fillObject($object, $form) : bool{
+	private function fillProperties($object, $form) : bool{
 		$object->setTitle($form->getInput('title'));
 		$object->setDescription($form->getInput('description'));
         if(!$this->object->isFAUOrgNumberValid($form->getInput('fau_org_number'))) return false;
         $object->setFAUOrgNumber($form->getInput('fau_org_number'));
         return true;
 	}
-/*
-	private function activateTab() {
-		$next_class = $this->ctrl->getCmdClass();
- 		switch($next_class) {
-			case 'showContent':
-				$this->tabs->activateTab("contents");
-				break;
-            case 'showExports':
-                $this->tabs->activateTab("exports");
-                break;
-		}
-	}
-*/
 
+    /**
+     * add Course to Database and check if successfull
+     */
     protected function addCourse(){
         $form = $this->showContent();
         $form->setValuesByPost();
@@ -341,6 +330,9 @@ class ilObjEvaluationManager2GUI extends ilObjectPluginGUI
         $this->tpl->setContent($form->getHTML());
     }
 
+    /**
+     * delete Course out of list
+     */
     protected function deleteCourse() {
         $form = $this->showContent();
         $form->setValuesByPost();
