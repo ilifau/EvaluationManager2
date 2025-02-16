@@ -12,7 +12,7 @@ class ilEvaluationManager2Plugin extends ilRepositoryObjectPlugin
      * get plugin name
      * @return string
      */
-	function getPluginName()
+	function getPluginName(): string
 	{
 		return "EvaluationManager2";
 	}
@@ -20,7 +20,7 @@ class ilEvaluationManager2Plugin extends ilRepositoryObjectPlugin
     /**
      * uninstall related database tables
      */
-	protected function uninstallCustom() {
+	protected function uninstallCustom(): void {
 		global $ilDB;
         try {
             if($ilDB->checkTableName("rep_robj_xevm_courses")) {

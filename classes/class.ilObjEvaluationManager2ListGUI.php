@@ -16,14 +16,14 @@ class ilObjEvaluationManager2ListGUI extends ilObjectPluginListGUI
 	/**
 	 * Init type
 	 */
-	function initType() {
+	function initType(): void {
 		$this->setType(ilEvaluationManager2Plugin::ID);
 	}
  
 	/**
 	 * Get name of gui class handling the commands
 	 */
-	function getGuiClass()
+	function getGuiClass(): string
 	{
 		return "ilObjEvaluationManager2GUI";
 	}
@@ -31,7 +31,7 @@ class ilObjEvaluationManager2ListGUI extends ilObjectPluginListGUI
 	/**
 	 * Get commands
 	 */
-	function initCommands()
+	function initCommands(): array
 	{
 		return array
 		(
@@ -55,7 +55,7 @@ class ilObjEvaluationManager2ListGUI extends ilObjectPluginListGUI
 	 *                                "property" (string) => property name
 	 *                                "value" (string) => property value
 	 */
-	function getProperties()
+	function getProperties(): array
 	{
 		global $lng, $ilUser;
  

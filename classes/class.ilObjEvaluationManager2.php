@@ -24,7 +24,7 @@ class ilObjEvaluationManager2 extends ilObjectPlugin
 	/**
 	 * Get type.
 	 */
-	final function initType()
+	final function initType(): void
 	{
 		$this->setType(ilEvaluationManager2Plugin::ID);
         $this->doRead();
@@ -33,7 +33,7 @@ class ilObjEvaluationManager2 extends ilObjectPlugin
 	/**
 	 * Create object in database, with obj_id and fau_org_number
 	 */
-	function doCreate()
+	function doCreate(): void
 	{
 		global $ilDB;
 
@@ -48,7 +48,7 @@ class ilObjEvaluationManager2 extends ilObjectPlugin
 	/**
 	 * Read data from db
 	 */
-	function doRead()
+	function doRead(): void
 	{
 		global $ilDB;
 		$set = $ilDB->query("SELECT * FROM rep_robj_xevm_orgs ".
@@ -63,7 +63,7 @@ class ilObjEvaluationManager2 extends ilObjectPlugin
 	/**
 	 * Update data
 	 */
-	function doUpdate()
+	function doUpdate(): void
 	{
 		global $ilDB;
 
@@ -76,7 +76,7 @@ class ilObjEvaluationManager2 extends ilObjectPlugin
 	/**
 	 * Delete data from db
 	 */
-	function doDelete()
+	function doDelete(): void
 	{
 		global $ilDB;
  
@@ -89,7 +89,7 @@ class ilObjEvaluationManager2 extends ilObjectPlugin
 	 * Do Cloning
      * TODO: is this necessary?
 	 */
-	function doClone($a_target_id,$a_copy_id,$new_obj)
+	function doClone($a_target_id,$a_copy_id,$new_obj): void
 	{
 		global $ilDB;
  
@@ -102,7 +102,7 @@ class ilObjEvaluationManager2 extends ilObjectPlugin
 	 *
 	 * @param        integer                 fauOrgNumber
 	 */
-	public function setFAUOrgNumber($a_val)
+	public function setFAUOrgNumber($a_val): void
 	{
 		$this->fauOrgNumber = $a_val;
 	}
@@ -112,7 +112,7 @@ class ilObjEvaluationManager2 extends ilObjectPlugin
 	 *
 	 * @return        integer                fauOrgNumber
 	 */
-	public function getFAUOrgNumber()
+	public function getFAUOrgNumber(): int
 	{
 		return $this->fauOrgNumber;
 	}
@@ -231,7 +231,7 @@ class ilObjEvaluationManager2 extends ilObjectPlugin
      * @param string $ref_id
      * @return bool
      */
-    public function deleteEntry(string $ref_id) : boolean {
+    public function deleteEntry(string $ref_id) : bool {
 
         global $ilDB;
         $set = $ilDB->query("DELETE FROM rep_robj_xevm_courses WHERE course_id = ". $ref_id);
@@ -242,9 +242,6 @@ class ilObjEvaluationManager2 extends ilObjectPlugin
         } else {
             return true;
         }
-
-        var_dump($ref_id);
-        exit();
     }
 }
 ?>

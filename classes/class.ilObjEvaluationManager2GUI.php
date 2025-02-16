@@ -35,7 +35,7 @@ class ilObjEvaluationManager2GUI extends ilObjectPluginGUI
 	/**
 	 * init of class-members
 	 */
-	protected function afterConstructor()
+	protected function afterConstructor(): void
 	{
         global $DIC;
 		$this->ctrl = $DIC->ctrl();
@@ -55,7 +55,7 @@ class ilObjEvaluationManager2GUI extends ilObjectPluginGUI
 	/**
 	 * Handles all commmands of this class, centralizes permission checks
 	 */
-	function performCommand($cmd)
+	function performCommand($cmd): void
 	{
 		switch ($cmd)
 		{
@@ -77,7 +77,7 @@ class ilObjEvaluationManager2GUI extends ilObjectPluginGUI
 	/**
 	 * After object has been created -> jump to this command
 	 */
-	function getAfterCreationCmd()
+	function getAfterCreationCmd(): string
 	{
 		return "editProperties";
 	}
@@ -85,7 +85,7 @@ class ilObjEvaluationManager2GUI extends ilObjectPluginGUI
 	/**
 	 * Get standard command
 	 */
-	function getStandardCmd()
+	function getStandardCmd(): string
 	{
 		return "showContent";
 	}
@@ -93,7 +93,7 @@ class ilObjEvaluationManager2GUI extends ilObjectPluginGUI
 	/**
 	 * Set tabs
 	 */
-	function setTabs()
+	function setTabs(): void
     {
         global $ilCtrl, $ilAccess;
 
@@ -122,7 +122,7 @@ class ilObjEvaluationManager2GUI extends ilObjectPluginGUI
 	/**
 	 * Edit Properties
 	 */
-	protected function editProperties()
+	protected function editProperties(): void
 	{
 		$this->tabs->activateTab("properties");
 		$form = $this->initPropertiesForm();
@@ -134,7 +134,7 @@ class ilObjEvaluationManager2GUI extends ilObjectPluginGUI
      * init Form for Properties
 	 * @return ilPropertyFormGUI
 	 */
-	protected function initPropertiesForm() {
+	protected function initPropertiesForm(): ilPropertyFormGUI {
 		$form = new ilPropertyFormGUI();
 		$form->setTitle($this->plugin->txt("obj_xevm"));
 
@@ -159,7 +159,7 @@ class ilObjEvaluationManager2GUI extends ilObjectPluginGUI
      * setup Fields for Property
 	 * @param $form ilPropertyFormGUI
 	 */
-	protected function addValuesToForm(&$form) {
+	protected function addValuesToForm(&$form): void {
 		$form->setValuesByArray(array(
 			"title" => $this->object->getTitle(),
 			"description" => $this->object->getDescription(),
@@ -170,7 +170,7 @@ class ilObjEvaluationManager2GUI extends ilObjectPluginGUI
 	/**
 	 * save Properties
 	 */
-	protected function saveProperties() {
+	protected function saveProperties(): void {
 		$form = $this->initPropertiesForm();
 		$form->setValuesByPost();
 		if($form->checkInput()) {
@@ -190,7 +190,7 @@ class ilObjEvaluationManager2GUI extends ilObjectPluginGUI
      * show Content of Course-List with fields for managing courses
      * @return ilPropertyFormGUI|void
      */
-    protected function showContent() {
+    protected function showContent(): ilPropertyFormGUI {
         global $DIC;
 
         $this->tabs->activateTab("contents");
@@ -254,7 +254,7 @@ class ilObjEvaluationManager2GUI extends ilObjectPluginGUI
      * show Export GUI
      * @return ilPropertyFormGUI
      */
-    protected function showExports() {
+    protected function showExports(): ilPropertyFormGUI {
         /** @var ilObjEvaluationManager2 $object */
         $this->tabs->activateTab("exports");
 
@@ -314,7 +314,7 @@ class ilObjEvaluationManager2GUI extends ilObjectPluginGUI
     /**
      * add Course to Database and check if successfull
      */
-    protected function addCourse(){
+    protected function addCourse(): void{
         $form = $this->showContent();
         $form->setValuesByPost();
         if($form->checkInput()) {
@@ -332,7 +332,7 @@ class ilObjEvaluationManager2GUI extends ilObjectPluginGUI
     /**
      * delete Course out of list
      */
-    protected function deleteCourse() {
+    protected function deleteCourse(): void {
         $form = $this->showContent();
         $form->setValuesByPost();
         if($form->checkInput()) {
