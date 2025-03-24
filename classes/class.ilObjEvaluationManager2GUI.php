@@ -7,7 +7,7 @@ use ILIAS\UI\Component\Item\Group;
 use ILIAS\UI\Component\ViewControl\Pagination;
 use FAU\Study\Data\ImportId;
 
-include_once("./Services/Repository/classes/class.ilObjectPluginGUI.php");
+include_once("./Services/Repository/PluginSlot/class.ilObjectPluginGUI.php");
 require_once("./Services/Form/classes/class.ilPropertyFormGUI.php");
 require_once("./Services/Form/classes/class.ilTextInputGUI.php");
 require_once("./Services/Form/classes/class.ilCheckboxInputGUI.php");
@@ -21,14 +21,11 @@ require_once("./Customizing/global/plugins/Services/Repository/RepositoryObject/
 
 class ilObjEvaluationManager2GUI extends ilObjectPluginGUI
 {
-	/** @var  ilCtrl */
-	protected $ctrl;
+	protected ilCtrl $ctrl;
 
-	/** @var  ilTabsGUI */
-	protected $tabs;
+	protected ilTabsGUI $tabs;
 
-    /** @var ilTemplate */
-    public $tpl;
+    public ilGlobalTemplateInterface $tpl;
 
     protected \ILIAS\DI\UIServices $ui;
 

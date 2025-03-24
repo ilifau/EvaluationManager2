@@ -1,6 +1,6 @@
 <?php
  
-include_once("./Services/Repository/classes/class.ilObjectPlugin.php");
+include_once("./Services/Repository/PluginSlot/class.ilObjectPlugin.php");
 require_once("./Customizing/global/plugins/Services/Repository/RepositoryObject/EvaluationManager2/classes/class.ilObjEvaluationManager2GUI.php");
 
 /**
@@ -33,7 +33,7 @@ class ilObjEvaluationManager2 extends ilObjectPlugin
 	/**
 	 * Create object in database, with obj_id and fau_org_number
 	 */
-	function doCreate(): void
+	function doCreate(bool $clone_mode = false) : void
 	{
 		global $ilDB;
 

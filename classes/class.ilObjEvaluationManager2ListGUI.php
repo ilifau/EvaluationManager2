@@ -1,6 +1,6 @@
 <?php
  
-include_once "./Services/Repository/classes/class.ilObjectPluginListGUI.php";
+include_once "./Services/Repository/PluginSlot/class.ilObjectPluginListGUI.php";
  
 /**
  * handles the presentation in container items (categories, courses, ...)

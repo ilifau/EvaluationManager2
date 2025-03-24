@@ -1,12 +1,17 @@
 <?php
  
-include_once("./Services/Repository/classes/class.ilRepositoryObjectPlugin.php");
+include_once "./Services/Repository/PluginSlot/class.ilRepositoryObjectPlugin.php";
  
 /**
  */
 class ilEvaluationManager2Plugin extends ilRepositoryObjectPlugin
 {
 	const ID = "xevm";
+
+    public function getPluginId(): string
+    {
+        return "xevm";
+    }
 
     /**
      * get plugin name

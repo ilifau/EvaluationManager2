@@ -1,5 +1,5 @@
 <?php
-include_once("./Services/Repository/classes/class.ilObjectPluginAccess.php");
+include_once("./Services/Repository/PluginSlot/class.ilObjectPluginAccess.php");
  
 /**
 * Access/Condition checking for Example object
@@ -29,7 +29,7 @@ class ilObjEvaluationManager2Access extends ilObjectPluginAccess
 	*
 	* @return	boolean		true, if everything is ok
 	*/
-	function _checkAccess($a_cmd, $a_permission, $a_ref_id, $a_obj_id, $a_user_id = "")
+	function _checkAccess($a_cmd, $a_permission, $a_ref_id, $a_obj_id, $a_user_id = ""): bool
 	{
 		global $ilUser, $ilAccess;
  
