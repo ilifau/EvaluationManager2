@@ -9,31 +9,26 @@ require_once("./Customizing/global/plugins/Services/Repository/RepositoryObject/
 class ilObjEvaluationManager2 extends ilObjectPlugin
 {
     protected int $fauOrgNumber = 0;
+    protected int $obj_id = 0;
 
-	/**
-	 * Constructor
-	 *
-	 * @access        public
-	 * @param int $a_ref_id
-	 */
-	function __construct($a_ref_id = 0)
+	public function __construct(int $a_ref_id = 0)
 	{
-		parent::__construct($a_ref_id);
+        #$obj_id = $this->getRefIDRelatedObjID($a_ref_id);
+        #$this->setId($obj_id); 
+        parent::__construct($a_ref_id);
 	}
  
 	/**
 	 * Get type.
 	 */
-	final function initType(): void
-	{
+	final public function initType(): void	{
 		$this->setType(ilEvaluationManager2Plugin::ID);
-        $this->doRead();
 	}
  
 	/**
 	 * Create object in database, with obj_id and fau_org_number
 	 */
-	function doCreate(bool $clone_mode = false) : void
+	public function doCreate(bool $clone_mode = false) : void
 	{
 		global $ilDB;
 
@@ -44,11 +39,24 @@ class ilObjEvaluationManager2 extends ilObjectPlugin
             ")"
         );
 	}
+
+    /**
+     * get obj_id from ref_id
+     */
+    protected function getRefIDRelatedObjID(int $ref_id): mixed {
+		global $ilDB;
+		$set = $ilDB->query("SELECT * FROM object_refence WHERE ref_id = ".$ilDB->quote($ref_id, "integer"));
+
+        while ($row = $ilDB->fetchAssoc($set)) {
+            $results[] = $row;
+        }
+        return $row[0]['obj_id'];
+    }
  
 	/**
 	 * Read data from db
 	 */
-	function doRead(): void
+	public function doRead(): void
 	{
 		global $ilDB;
 		$set = $ilDB->query("SELECT * FROM rep_robj_xevm_orgs ".
@@ -63,7 +71,7 @@ class ilObjEvaluationManager2 extends ilObjectPlugin
 	/**
 	 * Update data
 	 */
-	function doUpdate(): void
+	public function doUpdate(): void
 	{
 		global $ilDB;
 
@@ -76,7 +84,7 @@ class ilObjEvaluationManager2 extends ilObjectPlugin
 	/**
 	 * Delete data from db
 	 */
-	function doDelete(): void
+	public function doDelete(): void
 	{
 		global $ilDB;
  
@@ -89,7 +97,7 @@ class ilObjEvaluationManager2 extends ilObjectPlugin
 	 * Do Cloning
      * TODO: is this necessary?
 	 */
-	function doClone($a_target_id,$a_copy_id,$new_obj): void
+	public function doClone($a_target_id,$a_copy_id,$new_obj): void
 	{
 		global $ilDB;
  
@@ -109,8 +117,6 @@ class ilObjEvaluationManager2 extends ilObjectPlugin
  
 	/**
 	 * get FAUOrgNumber
-	 *
-	 * @return        integer                fauOrgNumber
 	 */
 	public function getFAUOrgNumber(): int
 	{

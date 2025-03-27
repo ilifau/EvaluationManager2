@@ -61,7 +61,7 @@ class ilObjEvaluationManager2ListGUI extends ilObjectPluginListGUI
  
 		$props = array();
  
-		$this->plugin->includeClass("class.ilObjEvaluationManager2Access.php");
+		#$this->plugin->("class.ilObjEvaluationManager2Access.php");
  
 		return $props;
 	}

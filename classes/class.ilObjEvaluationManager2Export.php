@@ -3,20 +3,17 @@
 class ilObjEvaluationManager2Export{
     /**
      * EvaluationManager2 Object to read saved course values
-     * @var $ilObject
      */
-    protected $object;
+    protected ilObject $object;
 
     /**
      * Array of courses which are to be evaluated
-     * @var array()
      */
-    protected $export_value_array = array("Evaluate" => 0 , "Key"  => '', "Type" => 0,
+    protected $export_value_array = ["Evaluate" => 0 , "Key"  => '', "Type" => 0,
                                "Event-ID" => 0, "Course-ID" => 0,
                                "Event" => '', "Course" => '', "Salutation" => '', "Title" => '',
                                "Firstname"  => '', "Lastname"  => '',
-                               "EMail" => '', "Link" => '', "Participants" => ''
-                              );
+                               "EMail" => '', "Link" => '', "Participants" => ''];
 
     protected $export_courses = array();
 
@@ -33,53 +30,79 @@ class ilObjEvaluationManager2Export{
     }
 
     /**
-     * function to do the Export of saved values in the database
-     * @return bool
+     * Formatiert ein Array als CSV-Zeile.
+     *
+     * @param array  $row         Das Array mit den Daten der Zeile.
+     * @param string $delimiter   Das Trennzeichen, Standard ist Komma.
+     * @param string $enclosure   Das Einschlusszeichen, Standard ist ".
+     * @param string $escape_char Das Escape-Zeichen, Standard ist \.
+     * @return string             Die CSV-formatierte Zeile.
      */
-    public function doExport()
+    protected function processCSVRow(array $row, string $delimiter = ',', string $enclosure = '"', string $escape_char = '\\'): string {
+    // Temporären Stream im Arbeitsspeicher öffnen
+        $fp = fopen('php://temp', 'r+');
+        // Array als CSV-Zeile schreiben
+        fputcsv($fp, $row, $delimiter, $enclosure, $escape_char);
+        // Stream zurücksetzen und Inhalt auslesen
+        rewind($fp);
+        $csv_line = stream_get_contents($fp);
+        fclose($fp);
+        // Entfernen des letzten Zeilenumbruchs, falls vorhanden
+        return rtrim($csv_line, "\n");
+    }    
+
+    /**
+     * function to do the Export of saved values in the database
+     */
+    public function doExport(): bool
     {
         $this->setCourses();
         $courseList = $this->getCourses();
         if ($this->isEvaSys) {
             $separator = ";";
-            $csv_courses = array();
-            $csv_participants = array();
-            $head_row_course = array('Function', 'Salutation', 'Title', 'Firstname', 'Lastname',
-                              'E-Mail', 'Name', 'Key', 'Study-Course', 'Type', 'Participants');
-            array_push($csv_courses, ilUtil::processCSVRow($head_row_course, TRUE, $separator) );
-            foreach ($courseList as $courses) {
-                $row_array = array('Dozent/in', $courses['Salutation'], $courses['Title'], $courses['Firstname'],
-                              $courses['Lastname'], $courses['EMail'], $courses['Course'], $courses['Key'], '', $courses['Type'],
-                              $courses['Participants']);
-                array_push($csv_courses, ilUtil::processCSVRow($row_array, TRUE, $separator));
+            $csv_courses = [];
+            $csv_participants = [];
+            $head_row_course = ['Function', 'Salutation', 'Title', 'Firstname', 'Lastname',
+                              'E-Mail', 'Name', 'Key', 'Study-Course', 'Type', 'Participants'];
+            #array_push($csv_courses, ilUtil::processCSVRow($head_row_course, TRUE, $separator) );
+            
+            foreach ($courseList as $course) {
+                $row_array = ['Dozent/in', $course['Salutation'], $course['Title'], $course['Firstname'],
+                              $course['Lastname'], $course['EMail'], $course['Course'], $course['Key'], '', $course['Type'],
+                              $course['Participants']];
+                
+                array_push($csv_courses, $row_array);
             }
             //TODO: build up evasys export
             $head_row_participants = array('Key', 'E-Mail');
-            array_push($csv_participants, ilUtil::processCSVRow($head_row_participants, TRUE, $separator) );
+            array_push($csv_participants, $head_row_participants);
             echo '<pre>' . var_export($csv_courses, true) . '</pre>';
             exit();
-            ilUtil::deliverData($output, "event_" . $this->object->getTitle() .  ".evasys");
-            ilUtil::deliverData($output_new, "participants_" . $this->object->getTitle() .  ".evasys");
+            #ilUtil::deliverData($output, "event_" . $this->object->getTitle() .  ".evasys");
+            #ilUtil::deliverData($output_new, "participants_" . $this->object->getTitle() .  ".evasys");
         } else {
-            $csv = array();
+            $csv = [];
             $separator = ";";
-            $head_row = array('Evaluation', 'Key', 'Type', 'Event-ID', 'Course-ID',
+            $head_row = ['Evaluation', 'Key', 'Type', 'Event-ID', 'Course-ID',
                               'Event','Course','Salutation','Title','Firstname',
-                              'Lastname','E-Mail','Link','Participant');
-            array_push($csv, ilUtil::processCSVRow($head_row, TRUE, $separator) );
+                              'Lastname','E-Mail','Link','Participant'];
+            array_push($csv,$head_row);
             foreach ($courseList as $course) {
-                $csvrow = array();
+                $csvrow = [];
                 foreach($course as $type => $value) {
                     array_push($csvrow, $value);
                 }
-                array_push($csv, ilUtil::processCSVRow($csvrow, TRUE, $separator));
+                array_push($csv, $csvrow);
             }
+            
+            echo '<pre>' . var_export($csvrow, true) . '</pre>';
+            exit();            
 
             $csvoutput = '';
             foreach($csv as $reihe) {
                 $csvoutput .= join($separator, $reihe). "\n";
             }
-            ilUtil::deliverData($csvoutput, $this->object->getTitle() .  ".csv");
+            #ilUtil::deliverData($csvoutput, $this->object->getTitle() .  ".csv");
         }
 
         return true;
@@ -107,6 +130,8 @@ class ilObjEvaluationManager2Export{
 
         global $ilDB;
         $course_informations = array();
+        $id = $this->object->getId();
+        $orgnumber = $this->object->getFAUOrgNumber();
         $set = $ilDB->query("SELECT sc.term_year, sc.term_type_id, eo.event_id, sc.course_id, /* all infos above to key-generation */
                                           se.eventtype, se.title as event_title, 
                                           sc.title as course_title, ud.gender, 
@@ -131,8 +156,8 @@ class ilObjEvaluationManager2Export{
         GROUP BY sc.course_id");
 
         
-        $courses_list = $ilDB->fetchAll($set);
-        foreach ($courses_list as $element) {
+        $course_list = $ilDB->fetchAll($set);
+        foreach ($course_list as $element) {
             $temp_value_array = $this->export_value_array;
             $temp_value_array['Evaluate'] = $element['evaluate'];
             $temp_value_array['Key'] = $this->buildKey($this->isEvaSys,"Prefix",
